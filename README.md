@@ -23,20 +23,6 @@ Pulse is a collaborative study ecosystem. Create topic-based rooms, share resour
 
 ---
 
-## 📂 Project Structure
+## System Architecture
 
-```text
-pulse/
-├── backend/
-│   ├── src/
-│   │   ├── config/          # Database and Env configuration
-│   │   ├── controllers/     # Request handlers
-│   │   ├── middlewares/     # JWT Auth and RBAC
-│   │   ├── models/          # Mongoose schemas (User, Room, Message, etc.)
-│   │   ├── routes/          # API endpoints
-│   │   ├── websocket/       # Socket.IO logic
-│   │   └── utils/           # Encryption and JWT helpers
-│   └── tsconfig.json
-└── frontend/
-    └── (Angular 21 Source)
-```
+![Pulse: Real-Time Social Learning Platform Architecture]('./frontend/src/assets/Pulse-Architecture.png')
