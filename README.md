@@ -4,7 +4,7 @@ Pulse is a collaborative study ecosystem. Create topic-based rooms, share resour
 
 ## Tech Stack
 
-- **Frontend:** Angular 21 (Zoneless, Signals), Angular Material.
+- **Frontend:** Angular 21, Angular Material.
 - **Backend:** Node.js, Express, TypeScript.
 - **Database:** MongoDB Atlas.
 - **Real-time:** Socket.IO.
