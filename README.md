@@ -25,4 +25,4 @@ Pulse is a collaborative study ecosystem. Create topic-based rooms, share resour
 
 ## System Architecture
 
-![Pulse: Real-Time Social Learning Platform Architecture]('./frontend/src/assets/Pulse-Architecture.png')
+![Pulse - Real-Time Social Learning Platform Architecture](https://raw.githubusercontent.com/Abd-Elhadi/pulse/blob/feat/backend-foundation/frontend/src/assets/Pulse-Architecture.png)
