@@ -25,4 +25,4 @@ Pulse is a collaborative study ecosystem. Create topic-based rooms, share resour
 
 ## System Architecture
 
-![Pulse Architecture](./frontend/src/assets/Pulse-Architecture.jpg)
+![Pulse Architecture](./frontend/src/assets/Pulse-Architecture.png)
