@@ -88,7 +88,7 @@ export const handleLogin = async (
     }
 
     try {
-        const user = await UserModel.findOne({email: email.toLowerCase()}); // 1 visit
+        const user = await UserModel.findOne({email: email.toLowerCase()});
         if (!user || !(await comparePassword(password, user.passwordHash))) {
             return res.status(401).json({message: "Invalid email or password"});
         }
@@ -99,7 +99,7 @@ export const handleLogin = async (
         );
 
         const refreshTokenHash = await hashToken(refreshToken);
-        await UserModel.updateOne({_id: user._id}, {refreshTokenHash}); // 2 visits total
+        await UserModel.updateOne({_id: user._id}, {refreshTokenHash});
 
         res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
         return res.status(200).json(buildAuthResponse(user, accessToken));
@@ -117,7 +117,7 @@ export const handleRefresh = async (req: Request, res: Response) => {
 
     try {
         const payload = verifyRefreshToken(token);
-        const user = await UserModel.findById(payload.userId); // 1 visit
+        const user = await UserModel.findById(payload.userId);
 
         if (
             !user?.refreshTokenHash ||
@@ -132,7 +132,7 @@ export const handleRefresh = async (req: Request, res: Response) => {
         );
 
         const refreshTokenHash = await hashToken(newRefreshToken);
-        await UserModel.updateOne({_id: user._id}, {refreshTokenHash}); // 2 visits total
+        await UserModel.updateOne({_id: user._id}, {refreshTokenHash});
 
         res.cookie("refreshToken", newRefreshToken, REFRESH_COOKIE_OPTIONS);
         return res.status(200).json(buildAuthResponse(user, accessToken));
