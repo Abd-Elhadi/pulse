@@ -1,4 +1,5 @@
 import mongoose, {Document, Schema, Model} from "mongoose";
+import bcrypt from "bcrypt";
 
 export interface IUser extends Document {
     _id: mongoose.Types.ObjectId;
@@ -11,6 +12,7 @@ export interface IUser extends Document {
     role: "admin" | "user";
     createdAt: Date;
     updatedAt: Date;
+    comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
 const userSchema = new Schema<IUser>(
@@ -64,6 +66,12 @@ const userSchema = new Schema<IUser>(
         },
     },
 );
+
+userSchema.methods.comparePassword = function (
+    candidatePassword: string,
+): Promise<boolean> {
+    return bcrypt.compare(candidatePassword, this.passwordHash);
+};
 
 export const UserModel: Model<IUser> = mongoose.model<IUser>(
     "User",
