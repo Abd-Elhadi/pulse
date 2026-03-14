@@ -1,10 +1,5 @@
 import mongoose, {Document, Schema, Model} from "mongoose";
 
-export interface IStreak {
-    current: number;
-    lastActive: Date;
-}
-
 export interface IUser extends Document {
     _id: mongoose.Types.ObjectId;
     email: string;
@@ -12,21 +7,11 @@ export interface IUser extends Document {
     displayName: string;
     avatarUrl: string;
     bio: string;
-    xp: number;
-    streak: IStreak;
     refreshTokenHash: string | null;
     role: "admin" | "user";
     createdAt: Date;
     updatedAt: Date;
 }
-
-const streakSchema = new Schema<IStreak>(
-    {
-        current: {type: Number, default: 0},
-        lastActive: {type: Date, default: Date.now},
-    },
-    {_id: false},
-);
 
 const userSchema = new Schema<IUser>(
     {
@@ -58,15 +43,6 @@ const userSchema = new Schema<IUser>(
             default: "",
             maxlength: 300,
         },
-        xp: {
-            type: Number,
-            default: 0,
-            min: 0,
-        },
-        streak: {
-            type: streakSchema,
-            default: () => ({current: 0, lastActive: new Date()}),
-        },
         refreshTokenHash: {
             type: String,
             default: null,
@@ -88,8 +64,6 @@ const userSchema = new Schema<IUser>(
         },
     },
 );
-
-userSchema.index({email: 1});
 
 export const UserModel: Model<IUser> = mongoose.model<IUser>(
     "User",

@@ -1,17 +1,11 @@
 import mongoose from "mongoose";
-import {env} from "./env.js";
+import {env} from "./env";
 
 export const connectDatabase = async (): Promise<void> => {
     try {
-        await mongoose.connect(env.DATABASE_URL, {
-            family: 4,
-            serverSelectionTimeoutMS: 10000,
-            socketTimeoutMS: 45000,
-        });
-        console.log("MongoDB Connected via Mongoose");
-        console.log("Connected to:", mongoose.connection.host);
+        await mongoose.connect(env.DATABASE_URL, {dbName: "pulse"});
+        console.log(`Database connected successfully.`);
     } catch (err) {
-        console.error("MongoDB Connection Error: ", err);
-        process.exit(1);
+        console.log(`Databse connection error: ${err}`);
     }
 };

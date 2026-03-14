@@ -21,8 +21,6 @@ export interface AuthResponse {
         displayName: string;
         avatarUrl: string;
         bio: string;
-        xp: number;
-        streak: {current: number; lastActive: Date};
         role: "admin" | "user";
     };
 }

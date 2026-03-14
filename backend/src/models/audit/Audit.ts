@@ -1,30 +1,37 @@
 import mongoose, {Document, Schema, Model} from "mongoose";
 
 export type AuditAction = "create" | "update" | "delete";
-export type AuditEntity =
-    | "user"
-    | "room"
-    | "message"
-    | "resource"
-    | "quiz"
-    | "quiz_attempt"
-    | "ai_job";
+export type AuditEntity = "user" | "room" | "message" | "resource" | "quiz";
+
+export interface IAuditUser {
+    userId: mongoose.Types.ObjectId;
+    displayName: string;
+    email: string;
+}
 
 export interface IAuditLog extends Document {
     _id: mongoose.Types.ObjectId;
-    userId: mongoose.Types.ObjectId;
+    performedBy: IAuditUser;
     action: AuditAction;
     entity: AuditEntity;
-    entityId: mongoose.Types.ObjectId;
-    metadata: Record<string, unknown>;
+    entityId: string;
+    metadata: any;
     timestamp: Date;
 }
 
+const auditUserSchema = new Schema<IAuditUser>(
+    {
+        userId: {type: Schema.Types.ObjectId, required: true},
+        displayName: {type: String, required: true},
+        email: {type: String, required: true},
+    },
+    {_id: false},
+);
+
 const auditLogSchema = new Schema<IAuditLog>(
     {
-        userId: {
-            type: Schema.Types.ObjectId,
-            ref: "User",
+        performedBy: {
+            type: auditUserSchema,
             required: true,
         },
         action: {
@@ -34,19 +41,11 @@ const auditLogSchema = new Schema<IAuditLog>(
         },
         entity: {
             type: String,
-            enum: [
-                "user",
-                "room",
-                "message",
-                "resource",
-                "quiz",
-                "quiz_attempt",
-                "ai_job",
-            ],
+            enum: ["user", "room", "message", "resource", "quiz"],
             required: true,
         },
         entityId: {
-            type: Schema.Types.ObjectId,
+            type: String,
             required: true,
         },
         metadata: {
@@ -64,7 +63,7 @@ const auditLogSchema = new Schema<IAuditLog>(
     },
 );
 
-auditLogSchema.index({userId: 1, timestamp: -1});
+auditLogSchema.index({"performedBy.userId": 1, timestamp: -1});
 auditLogSchema.index({entity: 1, entityId: 1});
 auditLogSchema.index({timestamp: -1});
 
