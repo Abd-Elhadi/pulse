@@ -1,33 +1,87 @@
 import {Request, Response, NextFunction} from "express";
-import {verifyAccessToken, JwtAccessPayload} from "../utils/jwt";
+import bcrypt from "bcrypt";
+import {
+    verifyAccessToken,
+    verifyRefreshToken,
+    generateAccessToken,
+    JwtPayload,
+} from "../utils/jwt";
+import {UserModel} from "../models/users/User";
 
-declare global {
-    namespace Express {
-        interface Request {
-            user?: JwtAccessPayload;
-        }
-    }
+export interface AuthRequest extends Request {
+    userId?: string;
+    user?: JwtPayload;
 }
 
-export const authMiddleware = (
-    req: Request,
+export const authenticate = async (
+    req: AuthRequest,
     res: Response,
     next: NextFunction,
-): void => {
-    const authHeader = req.headers["authorization"];
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        res.status(401).json({message: "Authorization token is required"});
-        return;
-    }
-
-    const token = authHeader.substring(7);
-
+): Promise<void> => {
     try {
-        const payload = verifyAccessToken(token);
-        req.user = payload;
-        next();
+        const accessToken = req.cookies.accessToken;
+        const refreshToken = req.cookies.refreshToken;
+
+        if (accessToken) {
+            try {
+                const decoded = verifyAccessToken(accessToken);
+                req.userId = decoded.userId;
+                req.user = decoded;
+                return next();
+            } catch {}
+        }
+
+        if (refreshToken) {
+            try {
+                const decoded = verifyRefreshToken(refreshToken);
+
+                const user = await UserModel.findById(decoded.userId);
+
+                if (!user || !user.refreshTokenHash) {
+                    res.status(401).json({message: "Invalid refresh token"});
+                    return;
+                }
+
+                const isValid = await bcrypt.compare(
+                    refreshToken,
+                    user.refreshTokenHash,
+                );
+
+                if (!isValid) {
+                    res.status(401).json({message: "Invalid refresh token"});
+                    return;
+                }
+
+                const newAccessToken = generateAccessToken(
+                    user._id.toString(),
+                    user.email,
+                    user.role,
+                );
+
+                res.cookie("accessToken", newAccessToken, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === "production",
+                    sameSite: "strict",
+                    path: "/",
+                    maxAge: 15 * 60 * 1000,
+                });
+
+                req.userId = user._id.toString();
+                req.user = {
+                    userId: user._id.toString(),
+                    email: user.email,
+                    role: user.role,
+                };
+
+                return next();
+            } catch {
+                res.status(401).json({message: "Invalid refresh token"});
+                return;
+            }
+        }
+
+        res.status(401).json({message: "Authentication required"});
     } catch {
-        res.status(401).json({message: "Invalid or expired access token"});
+        res.status(500).json({message: "Authentication error"});
     }
 };

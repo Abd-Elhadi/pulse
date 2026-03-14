@@ -1,21 +1,19 @@
 import {UserModel, IUser} from "../models/users/User";
 import {
-    hashPassword,
-    comparePassword,
-    hashToken,
-    compareToken,
-} from "../utils/hashUtils";
-import {
-    generateTokenPair,
-    verifyRefreshToken,
-    JwtAccessPayload,
-    TokenPair,
+    generateAccessToken,
+    generateRefreshToken,
+    setTokenCookies,
+    clearTokenCookies,
 } from "../utils/jwt";
+import {AuthResponse} from "../types/Auth.types";
+import {Request, Response} from "express";
 import {
-    RegisterRequestBody,
-    LoginRequestBody,
-    AuthResponse,
-} from "../types/Auth.types";
+    validateEmail,
+    validateName,
+    validatePassword,
+} from "../utils/validators";
+import bcrypt from "bcrypt";
+import {AuthRequest} from "../middlewares/auth";
 
 const buildAuthResponse = (user: IUser, accessToken: string): AuthResponse => ({
     accessToken,
@@ -29,134 +27,155 @@ const buildAuthResponse = (user: IUser, accessToken: string): AuthResponse => ({
     },
 });
 
-export const registerUser = async (
-    body: RegisterRequestBody,
-): Promise<{authResponse: AuthResponse; refreshToken: string}> => {
-    const {email, password, displayName} = body;
-
-    const existing = await UserModel.findOne({email: email.toLowerCase()});
-    if (existing) {
-        throw new Error("EMAIL_TAKEN");
-    }
-
-    if (password.length < 8) {
-        throw new Error("PASSWORD_TOO_SHORT");
-    }
-
-    const passwordHash = await hashPassword(password);
-
-    const user = await UserModel.create({
-        email: email.toLowerCase(),
-        passwordHash,
-        displayName,
-    });
-
-    const accessPayload: JwtAccessPayload = {
-        userId: user._id.toString(),
-        email: user.email,
-        role: user.role,
-    };
-
-    const {accessToken, refreshToken}: TokenPair = generateTokenPair(
-        accessPayload,
-        {
-            userId: user._id.toString(),
-        },
-    );
-
-    user.refreshTokenHash = await hashToken(refreshToken);
-    await user.save();
-
-    return {authResponse: buildAuthResponse(user, accessToken), refreshToken};
-};
-
-export const loginUser = async (
-    body: LoginRequestBody,
-): Promise<{authResponse: AuthResponse; refreshToken: string}> => {
-    const {email, password} = body;
-
-    const user = await UserModel.findOne({email: email.toLowerCase()});
-    if (!user) {
-        throw new Error("INVALID_CREDENTIALS");
-    }
-
-    const passwordMatch = await comparePassword(password, user.passwordHash);
-    if (!passwordMatch) {
-        throw new Error("INVALID_CREDENTIALS");
-    }
-
-    const accessPayload: JwtAccessPayload = {
-        userId: user._id.toString(),
-        email: user.email,
-        role: user.role,
-    };
-
-    const {accessToken, refreshToken}: TokenPair = generateTokenPair(
-        accessPayload,
-        {
-            userId: user._id.toString(),
-        },
-    );
-
-    user.refreshTokenHash = await hashToken(refreshToken);
-    await user.save();
-
-    return {authResponse: buildAuthResponse(user, accessToken), refreshToken};
-};
-
-export const refreshTokens = async (
-    token: string,
-): Promise<{authResponse: AuthResponse; refreshToken: string}> => {
-    let payload: {userId: string};
-
+export const registerUser = async (req: Request, res: Response) => {
     try {
-        payload = verifyRefreshToken(token);
+        const {email, password, displayName} = req.body;
+
+        if (!email || !password || !displayName) {
+            res.status(400).json({message: "All fields are required"});
+            return;
+        }
+
+        if (!validateEmail(email)) {
+            res.status(400).json({message: "Invalid email format"});
+            return;
+        }
+
+        const passwordValidation = validatePassword(password);
+
+        if (!passwordValidation.valid) {
+            res.status(400).json({message: passwordValidation.message});
+            return;
+        }
+
+        const nameValidation = validateName(displayName);
+        if (!nameValidation.valid) {
+            res.status(400).json({message: nameValidation.message});
+            return;
+        }
+
+        const passwordHash = await bcrypt.hash(password, 10);
+
+        const user = await UserModel.create({
+            email: email.toLowerCase(),
+            passwordHash,
+            displayName,
+        });
+
+        const accessToken = generateAccessToken(
+            user._id.toString(),
+            user.email,
+            user.role,
+        );
+
+        const refreshToken = generateRefreshToken(
+            user._id.toString(),
+            user.email,
+            user.role,
+        );
+
+        user.refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+        await user.save();
+
+        setTokenCookies(res, accessToken, refreshToken);
+
+        return res.json({
+            authResponse: buildAuthResponse(user, accessToken),
+            refreshToken,
+        });
+    } catch (err: any) {
+        if (err.code === 11000) {
+            res.status(400).json({message: "User already exists"});
+            return;
+        }
+
+        return res.status(500).json({message: "Internal server error"});
+    }
+};
+
+export const loginUser = async (req: Request, res: Response) => {
+    try {
+        const {email, password} = req.body;
+
+        if (!email || !password) {
+            return res
+                .status(400)
+                .json({message: "Email and password are required"});
+        }
+
+        const user = await UserModel.findOne({email: email.toLowerCase()});
+
+        if (!user) {
+            res.status(401).json({message: "Invalid email"});
+            return;
+        }
+
+        const isPasswordValid = await user.comparePassword(password);
+
+        if (!isPasswordValid) {
+            res.status(401).json({message: "Invalid password"});
+            return;
+        }
+
+        const accessToken = generateAccessToken(
+            user._id.toString(),
+            user.email,
+            user.role,
+        );
+
+        const refreshToken = generateRefreshToken(
+            user._id.toString(),
+            user.email,
+            user.role,
+        );
+
+        user.refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+        await user.save();
+
+        setTokenCookies(res, accessToken, refreshToken);
+
+        return res.json({
+            authResponse: buildAuthResponse(user, accessToken),
+            refreshToken,
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({message: "Internal server error"});
+    }
+};
+
+export const logoutUser = async (
+    req: AuthRequest,
+    res: Response,
+): Promise<void> => {
+    try {
+        if (req.userId) {
+            await UserModel.findByIdAndUpdate(req.userId, {
+                refreshTokenHash: null,
+            });
+        }
+
+        clearTokenCookies(res);
+
+        res.status(200).json({message: "Logout successful"});
     } catch {
-        throw new Error("INVALID_REFRESH_TOKEN");
+        res.status(500).json({message: "Logout failed"});
     }
-
-    const user = await UserModel.findById(payload.userId);
-    if (!user || !user.refreshTokenHash) {
-        throw new Error("INVALID_REFRESH_TOKEN");
-    }
-
-    const tokenMatch = await compareToken(token, user.refreshTokenHash);
-    if (!tokenMatch) {
-        throw new Error("INVALID_REFRESH_TOKEN");
-    }
-
-    const accessPayload: JwtAccessPayload = {
-        userId: user._id.toString(),
-        email: user.email,
-        role: user.role,
-    };
-
-    const {accessToken, refreshToken: newRefreshToken}: TokenPair =
-        generateTokenPair(accessPayload, {userId: user._id.toString()});
-
-    user.refreshTokenHash = await hashToken(newRefreshToken);
-    await user.save();
-
-    return {
-        authResponse: buildAuthResponse(user, accessToken),
-        refreshToken: newRefreshToken,
-    };
 };
 
-export const logoutUser = async (userId: string): Promise<void> => {
-    await UserModel.findByIdAndUpdate(userId, {refreshTokenHash: null});
-};
+export const getMe = async (req: AuthRequest, res: Response) => {
+    const user = await UserModel.findById(req.userId);
 
-export const getMe = async (userId: string): Promise<AuthResponse["user"]> => {
-    const user = await UserModel.findById(userId);
-    if (!user) throw new Error("USER_NOT_FOUND");
+    if (!user) {
+        return res.status(404).json({message: "User not found"});
+    }
 
-    return {
+    return res.json({
         id: user._id.toString(),
         email: user.email,
         displayName: user.displayName,
         avatarUrl: user.avatarUrl,
         bio: user.bio,
         role: user.role,
-    };
+    });
 };
