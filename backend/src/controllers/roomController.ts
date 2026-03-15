@@ -204,3 +204,81 @@ export const leaveRoom = async (
     room.members.splice(memberIndex, 1);
     await room.save();
 };
+
+export const inviteMember = async (
+    roomId: string,
+    targetUserId: string,
+    role: IRoomMember["role"],
+    requesterId: string,
+): Promise<RoomResponse> => {
+    const room = await RoomModel.findById(roomId);
+    if (!room) throw new Error("ROOM_NOT_FOUND");
+
+    // Only room admin or owner can invite
+    const requester = room.members.find((m) => m.userId === requesterId);
+    const isOwner = room.ownerId === requesterId;
+    if (!isOwner && requester?.role !== "admin") throw new Error("FORBIDDEN");
+
+    const alreadyMember = room.members.some((m) => m.userId === targetUserId);
+    if (alreadyMember) throw new Error("ALREADY_MEMBER");
+
+    const user = await UserModel.findById(targetUserId).lean();
+    if (!user) throw new Error("USER_NOT_FOUND");
+
+    room.members.push({
+        userId: targetUserId,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        role,
+        joinedAt: new Date(),
+    });
+
+    await room.save();
+    return toRoomResponse(room, requesterId);
+};
+
+export const updateMemberRole = async (
+    roomId: string,
+    targetUserId: string,
+    newRole: IRoomMember["role"],
+    requesterId: string,
+): Promise<RoomResponse> => {
+    const room = await RoomModel.findById(roomId);
+    if (!room) throw new Error("ROOM_NOT_FOUND");
+
+    const isOwner = room.ownerId === requesterId;
+    const requester = room.members.find((m) => m.userId === requesterId);
+    if (!isOwner && requester?.role !== "admin") throw new Error("FORBIDDEN");
+    if (targetUserId === room.ownerId)
+        throw new Error("CANNOT_CHANGE_OWNER_ROLE");
+
+    const member = room.members.find((m) => m.userId === targetUserId);
+    if (!member) throw new Error("NOT_A_MEMBER");
+
+    member.role = newRole;
+    await room.save();
+    return toRoomResponse(room, requesterId);
+};
+
+export const removeMember = async (
+    roomId: string,
+    targetUserId: string,
+    requesterId: string,
+): Promise<RoomResponse> => {
+    const room = await RoomModel.findById(roomId);
+    if (!room) throw new Error("ROOM_NOT_FOUND");
+
+    const isOwner = room.ownerId === requesterId;
+    const requester = room.members.find((m) => m.userId === requesterId);
+    if (!isOwner && requester?.role !== "admin") throw new Error("FORBIDDEN");
+    if (targetUserId === room.ownerId) throw new Error("CANNOT_REMOVE_OWNER");
+
+    const memberIndex = room.members.findIndex(
+        (m) => m.userId === targetUserId,
+    );
+    if (memberIndex === -1) throw new Error("NOT_A_MEMBER");
+
+    room.members.splice(memberIndex, 1);
+    await room.save();
+    return toRoomResponse(room, requesterId);
+};
