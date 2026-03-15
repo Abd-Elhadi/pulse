@@ -26,10 +26,13 @@ export const authInterceptor: HttpInterceptorFn = (
     req.url.includes('/auth/login') ||
     req.url.includes('/auth/refresh');
 
-  const authReq =
-    accessToken && !isPublicAuthRoute
-      ? req.clone({ setHeaders: { Authorization: `Bearer ${accessToken}` } })
-      : req;
+  let authReq = req.clone({ withCredentials: true });
+
+  if (accessToken && !isPublicAuthRoute) {
+    authReq = authReq.clone({
+      setHeaders: { Authorization: `Bearer ${accessToken}` },
+    });
+  }
 
   return next(authReq).pipe(
     catchError((error: unknown) => {
