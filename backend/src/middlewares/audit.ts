@@ -2,7 +2,6 @@ import {Request, Response, NextFunction} from "express";
 import mongoose from "mongoose";
 import {AuditLogModel, AuditAction, AuditEntity} from "../models/audit/Audit";
 import {UserModel} from "../models/users/User";
-import {AuthRequest} from "./auth";
 
 export interface AuditOptions {
     action: AuditAction;
@@ -12,7 +11,7 @@ export interface AuditOptions {
 }
 
 export const auditLog = (options: AuditOptions) => {
-    return (req: AuthRequest, res: Response, next: NextFunction): void => {
+    return (req: Request, res: Response, next: NextFunction): void => {
         const originalJson = res.json.bind(res);
 
         res.json = (body: unknown): Response => {
