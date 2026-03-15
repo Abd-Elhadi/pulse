@@ -51,38 +51,38 @@ export const verifyRefreshToken = (token: string): JwtPayload => {
     ) as JwtPayload;
 };
 
-export const setTokenCookies = (
-    res: Response,
-    accessToken: string,
-    refreshToken: string,
-): void => {
-    res.cookie("accessToken", accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        path: "/",
-        maxAge: 15 * 60 * 1000,
-    });
+// export const setTokenCookies = (
+//     res: Response,
+//     accessToken: string,
+//     refreshToken: string,
+// ): void => {
+//     res.cookie("accessToken", accessToken, {
+//         httpOnly: true,
+//         secure: process.env.NODE_ENV === "production",
+//         sameSite: "strict",
+//         path: "/",
+//         maxAge: 15 * 60 * 1000,
+//     });
 
-    res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        path: "/",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-};
+//     res.cookie("refreshToken", refreshToken, {
+//         httpOnly: true,
+//         secure: process.env.NODE_ENV === "production",
+//         sameSite: "strict",
+//         path: "/",
+//         maxAge: 7 * 24 * 60 * 60 * 1000,
+//     });
+// };
 
-export const clearTokenCookies = (res: Response): void => {
-    res.cookie("accessToken", "", {
-        httpOnly: true,
-        expires: new Date(0),
-        path: "/",
-    });
+// export const clearTokenCookies = (res: Response): void => {
+//     res.cookie("accessToken", "", {
+//         httpOnly: true,
+//         expires: new Date(0),
+//         path: "/",
+//     });
 
-    res.cookie("refreshToken", "", {
-        httpOnly: true,
-        expires: new Date(0),
-        path: "/",
-    });
-};
+//     res.cookie("refreshToken", "", {
+//         httpOnly: true,
+//         expires: new Date(0),
+//         path: "/",
+//     });
+// };

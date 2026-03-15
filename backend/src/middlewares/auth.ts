@@ -8,13 +8,8 @@ import {
 } from "../utils/jwt";
 import {UserModel} from "../models/users/User";
 
-export interface AuthRequest extends Request {
-    userId?: string;
-    user?: JwtPayload;
-}
-
 export const authenticate = async (
-    req: AuthRequest,
+    req: Request,
     res: Response,
     next: NextFunction,
 ): Promise<void> => {
