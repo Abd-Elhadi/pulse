@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cookieParser from "cookie-parser";
 import authRouter from "./routes/authRoutes";
+import roomsRouter from "./routes/roomRoutes";
 
 const app = express();
 
@@ -10,6 +11,7 @@ app.use(express.urlencoded({extended: true}));
 app.use(cookieParser());
 
 app.use("/api/auth", authRouter);
+app.use("/api/rooms", roomsRouter);
 
 app.use((_req, res) => {
     res.status(404).json({message: "Route not found"});
