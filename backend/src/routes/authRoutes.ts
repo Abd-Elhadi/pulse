@@ -16,14 +16,6 @@ import {clearTokenCookies, setTokenCookies} from "../utils/jwt";
 
 const router = Router();
 
-const REFRESH_COOKIE_OPTIONS = {
-    httpOnly: true,
-    secure: true,
-    sameSite: "strict" as const,
-    path: "/",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-};
-
 router.post(
     "/register",
     auditLog({action: "create", entity: "user"}),
