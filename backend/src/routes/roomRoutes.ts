@@ -8,11 +8,18 @@ import {
     getMyRooms,
     getRoomById,
     getRooms,
+    inviteMember,
     joinRoom,
     leaveRoom,
+    removeMember,
+    updateMemberRole,
     updateRoom,
 } from "../controllers/roomController";
-import {UpdateRoomBody} from "../types/rooms.type";
+import {
+    InviteMemberBody,
+    UpdateMemberRoleBody,
+    UpdateRoomBody,
+} from "../types/rooms.type";
 
 const router = Router();
 
@@ -250,6 +257,195 @@ router.post(
                 return;
             }
             console.error("leaveRoom error:", error);
+            res.status(500).json({message: "Internal server error"});
+        }
+    },
+);
+
+router.post(
+    "/:roomId/members",
+    resolveRoomRole,
+    requireRoomRole("admin"),
+    auditLog({
+        action: "create",
+        entity: "room",
+        getEntityId: (req) => req.params["roomId"] as string,
+        getMetadata: (req) => ({
+            action: "member_invited",
+            targetUserId: (req.body as InviteMemberBody).userId,
+        }),
+    }),
+    async (
+        req: Request<{roomId: string}, object, InviteMemberBody>,
+        res: Response,
+    ) => {
+        const {userId: targetUserId, role} = req.body;
+
+        if (!targetUserId || !role) {
+            res.status(400).json({message: "userId and role are required"});
+            return;
+        }
+
+        if (!["admin", "editor", "viewer"].includes(role)) {
+            res.status(400).json({
+                message: "role must be admin, editor or viewer",
+            });
+            return;
+        }
+
+        try {
+            const room = await inviteMember(
+                req.params["roomId"],
+                targetUserId,
+                role,
+                req.user!.userId,
+            );
+            res.status(200).json(room);
+        } catch (e) {
+            const error = e as Error;
+            if (error.message === "ROM_NOT_FOUND") {
+                res.status(404).json({message: "Room not found"});
+                return;
+            }
+
+            if (error.message == "USER_NOT_FOUND") {
+                res.status(404).json({message: "User to invite not found"});
+                return;
+            }
+
+            if (error.message === "ALREADY_MEMBER") {
+                res.status(409).json({
+                    message: "User is already a memeber of this room",
+                });
+                return;
+            }
+
+            if (error.message === "FORBIDDEN") {
+                res.status(403).json({
+                    message: "Only room admins can invite members",
+                });
+                return;
+            }
+
+            console.error(`inviteMemeber error ${error}`);
+            res.status(500).json({message: "Internal server error."});
+        }
+    },
+);
+
+router.post(
+    "/:roomId/members/:userId",
+    resolveRoomRole,
+    requireRoomRole("admin"),
+    auditLog({
+        action: "update",
+        entity: "room",
+        getEntityId: (req) => req.params["roomId"] as string,
+        getMetadata: (req) => ({
+            action: "member_role_update",
+            targetUserId: req.params["userId"],
+            newRole: (req.body as UpdateMemberRoleBody).role,
+        }),
+    }),
+    async (
+        req: Request<
+            {roomId: string; userId: string},
+            object,
+            UpdateMemberRoleBody
+        >,
+        res: Response,
+    ) => {
+        const {role} = req.body;
+
+        if (!role || !["admin", "editor", "viewer"].includes(role)) {
+            res.status(400).json({
+                message: "Valid role is required (admin, editor, viewer)",
+            });
+            return;
+        }
+
+        try {
+            const room = await updateMemberRole(
+                req.params["roomId"],
+                req.params["userId"],
+                role,
+                req.user!.userId,
+            );
+            res.status(200).json(room);
+        } catch (err) {
+            const error = err as Error;
+            if (error.message === "ROOM_NOT_FOUND") {
+                res.status(404).json({message: "Room not found"});
+                return;
+            }
+            if (error.message === "NOT_A_MEMBER") {
+                res.status(404).json({
+                    message: "User is not a member of this room",
+                });
+                return;
+            }
+            if (error.message === "CANNOT_CHANGE_OWNER_ROLE") {
+                res.status(400).json({
+                    message: "Cannot change the role of the room owner",
+                });
+                return;
+            }
+            if (error.message === "FORBIDDEN") {
+                res.status(403).json({
+                    message: "Only room admins can change member roles",
+                });
+                return;
+            }
+            console.error("updateMemberRole error:", error);
+            res.status(500).json({message: "Internal server error"});
+        }
+    },
+);
+
+router.delete(
+    "/:roomId/members/:userId",
+    resolveRoomRole,
+    requireRoomRole("admin"),
+    auditLog({
+        action: "delete",
+        entity: "room",
+        getEntityId: (req) => req.params["roomId"] as string,
+        getMetadata: (req) => ({
+            action: "member_removed",
+            targetUserId: req.params["userId"],
+        }),
+    }),
+    async (req: Request, res: Response) => {
+        try {
+            const room = await removeMember(
+                req.params["roomId"] as string,
+                req.params["userId"] as string,
+                req.user!.userId,
+            );
+            res.status(200).json(room);
+        } catch (err) {
+            const error = err as Error;
+            if (error.message === "ROOM_NOT_FOUND") {
+                res.status(404).json({message: "Room not found"});
+                return;
+            }
+            if (error.message === "NOT_A_MEMBER") {
+                res.status(404).json({
+                    message: "User is not a member of this room",
+                });
+                return;
+            }
+            if (error.message === "CANNOT_REMOVE_OWNER") {
+                res.status(400).json({message: "Cannot remove the room owner"});
+                return;
+            }
+            if (error.message === "FORBIDDEN") {
+                res.status(403).json({
+                    message: "Only room admins can remove members",
+                });
+                return;
+            }
+            console.error("removeMember error:", error);
             res.status(500).json({message: "Internal server error"});
         }
     },
