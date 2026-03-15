@@ -1,5 +1,10 @@
 import {UserModel, IUser} from "../models/users/User";
-import {generateAccessToken, generateRefreshToken} from "../utils/jwt";
+import {
+    compareToken,
+    generateAccessToken,
+    generateRefreshToken,
+    verifyRefreshToken,
+} from "../utils/jwt";
 import {
     AuthResponse,
     RegisterRequestBody,
@@ -117,5 +122,48 @@ export const getMe = async (userId: string): Promise<AuthResponse["user"]> => {
         avatarUrl: user.avatarUrl,
         bio: user.bio,
         role: user.role,
+    };
+};
+
+export const refreshTokens = async (
+    token: string,
+): Promise<{authResponse: AuthResponse; refreshToken: string}> => {
+    let payload: {userId: string};
+
+    try {
+        payload = verifyRefreshToken(token);
+    } catch {
+        throw new Error("INVALID_REFRESH_TOKEN");
+    }
+
+    const user = await UserModel.findById(payload.userId);
+    if (!user || !user.refreshTokenHash) {
+        throw new Error("INVALID_REFRESH_TOKEN");
+    }
+
+    const tokenMatch = await compareToken(token, user.refreshTokenHash);
+    if (!tokenMatch) {
+        throw new Error("INVALID_REFRESH_TOKEN");
+    }
+
+    const accessToken = generateAccessToken(
+        user._id.toString(),
+        user.email,
+        user.role,
+    );
+
+    const newRefreshToken = generateRefreshToken(
+        user._id.toString(),
+        user.email,
+        user.role,
+    );
+
+    user.refreshTokenHash = await bcrypt.hash(newRefreshToken, 10);
+
+    await user.save();
+
+    return {
+        authResponse: buildAuthResponse(user, accessToken),
+        refreshToken: newRefreshToken,
     };
 };

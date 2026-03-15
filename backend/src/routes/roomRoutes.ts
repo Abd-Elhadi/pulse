@@ -333,7 +333,7 @@ router.post(
     },
 );
 
-router.post(
+router.patch(
     "/:roomId/members/:userId",
     resolveRoomRole,
     requireRoomRole("admin"),
