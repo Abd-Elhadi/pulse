@@ -12,6 +12,7 @@ import {
     validatePassword,
 } from "../utils/validators";
 import {auditLog} from "../middlewares/audit";
+import {clearTokenCookies, setTokenCookies} from "../utils/jwt";
 
 const router = Router();
 
@@ -66,7 +67,7 @@ router.post(
                 password,
                 displayName,
             });
-            res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
+            setTokenCookies(res, authResponse.accessToken, refreshToken);
             res.status(201).json(authResponse);
         } catch (err) {
             const error = err as Error;
@@ -94,7 +95,7 @@ router.post("/login", async (req: Request, res: Response) => {
             email,
             password,
         });
-        res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
+        setTokenCookies(res, authResponse.accessToken, refreshToken);
         res.status(200).json(authResponse);
     } catch (err) {
         const error = err as Error;
@@ -113,7 +114,7 @@ router.post("/logout", authenticate, async (req: Request, res: Response) => {
             return;
         }
         await logoutUser(req.user.userId);
-        res.clearCookie("refreshToken");
+        clearTokenCookies(res);
         res.status(200).json({message: "Logged out successfully"});
     } catch (err) {
         console.error("Logout error:", err);

@@ -65,44 +65,38 @@ export const registerUser = async (
 export const loginUser = async (
     body: LoginRequestBody,
 ): Promise<{authResponse: AuthResponse; refreshToken: string}> => {
-    try {
-        const {email, password} = body;
+    const {email, password} = body;
 
-        const user = await UserModel.findOne({email: email.toLowerCase()});
+    const user = await UserModel.findOne({email: email.toLowerCase()});
 
-        if (!user) {
-            throw new Error("INVALID_CREDENTIALS");
-        }
-
-        const isPasswordValid = await user.comparePassword(password);
-
-        if (!isPasswordValid) {
-            throw new Error("INVALID_CREDENTIALS");
-        }
-
-        const accessToken = generateAccessToken(
-            user._id.toString(),
-            user.email,
-            user.role,
-        );
-
-        const refreshToken = generateRefreshToken(
-            user._id.toString(),
-            user.email,
-            user.role,
-        );
-
-        user.refreshTokenHash = await bcrypt.hash(refreshToken, 10);
-        await user.save();
-
-        return {
-            authResponse: buildAuthResponse(user, accessToken),
-            refreshToken,
-        };
-    } catch (e) {
-        console.error(e);
-        throw new Error("Internal server error.");
+    if (!user) {
+        throw new Error("INVALID_CREDENTIALS");
     }
+
+    const isPasswordValid = await user.comparePassword(password);
+
+    if (!isPasswordValid) {
+        throw new Error("INVALID_CREDENTIALS");
+    }
+
+    const accessToken = generateAccessToken(
+        user._id.toString(),
+        user.email,
+        user.role,
+    );
+    const refreshToken = generateRefreshToken(
+        user._id.toString(),
+        user.email,
+        user.role,
+    );
+
+    user.refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+    await user.save();
+
+    return {
+        authResponse: buildAuthResponse(user, accessToken),
+        refreshToken,
+    };
 };
 
 export const logoutUser = async (userId: string): Promise<void> => {
