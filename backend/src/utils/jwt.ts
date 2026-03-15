@@ -1,5 +1,6 @@
 import {CookieOptions, Response} from "express";
 import jwt, {SignOptions} from "jsonwebtoken";
+import bcrypt from "bcrypt";
 
 export interface JwtPayload {
     userId: string;
@@ -40,6 +41,13 @@ export const generateRefreshToken = (
             expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || ("7d" as any),
         },
     );
+};
+
+export const compareToken = async (
+    token: string,
+    hashedToken: string,
+): Promise<boolean> => {
+    return await bcrypt.compare(token, hashedToken);
 };
 
 export const verifyAccessToken = (token: string): JwtPayload => {

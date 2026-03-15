@@ -4,6 +4,7 @@ import {
     loginUser,
     logoutUser,
     getMe,
+    refreshTokens,
 } from "../controllers/authController";
 import {authenticate} from "../middlewares/auth";
 import {
@@ -13,8 +14,16 @@ import {
 } from "../utils/validators";
 import {auditLog} from "../middlewares/audit";
 import {clearTokenCookies, setTokenCookies} from "../utils/jwt";
+import {AuthResponse, RefreshRequestBody} from "../types/Auth.types";
 
 const router = Router();
+
+const REFRESH_COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: process.env["NODE_ENV"] === "production",
+    sameSite: "strict" as const,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+};
 
 router.post(
     "/register",
@@ -99,6 +108,41 @@ router.post("/login", async (req: Request, res: Response) => {
         res.status(500).json({message: "Internal server error"});
     }
 });
+
+router.post(
+    "/refresh",
+    async (
+        req: Request<object, AuthResponse, RefreshRequestBody>,
+        res: Response,
+    ) => {
+        const token: string | undefined =
+            (req.cookies as Record<string, string>)["refreshToken"] ??
+            req.body.refreshToken;
+
+        if (!token) {
+            res.status(401).json({message: "Refresh token is required"});
+            return;
+        }
+
+        try {
+            const {authResponse, refreshToken} = await refreshTokens(token);
+            res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
+            res.status(200).json(authResponse);
+        } catch (err) {
+            const error = err as Error;
+            if (error.message === "INVALID_REFRESH_TOKEN") {
+                res.clearCookie("refreshToken");
+                res.status(401).json({
+                    message: "Invalid or expired refresh token",
+                });
+                return;
+            }
+            console.error("Refresh error:", error);
+            res.status(500).json({message: "Internal server error"});
+        }
+    },
+);
+
 router.post("/logout", authenticate, async (req: Request, res: Response) => {
     try {
         if (!req.user) {
