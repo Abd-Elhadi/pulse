@@ -1,4 +1,4 @@
-import {Response} from "express";
+import {CookieOptions, Response} from "express";
 import jwt, {SignOptions} from "jsonwebtoken";
 
 export interface JwtPayload {
@@ -7,19 +7,25 @@ export interface JwtPayload {
     role: "admin" | "user";
 }
 
+const COOKIE_BASE_OPTIONS: CookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+};
+
 export const generateAccessToken = (
     userId: string,
     email: string,
     role: "admin" | "user",
 ): string => {
-    const payload: JwtPayload = {userId, email, role};
-    const secret = process.env.JWT_ACCESS_SECRET as string;
-
-    const options: SignOptions = {
-        expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || ("15m" as any),
-    };
-
-    return jwt.sign(payload, secret, options);
+    return jwt.sign(
+        {userId, email, role},
+        process.env.JWT_ACCESS_SECRET as string,
+        {
+            expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || ("15m" as any),
+        },
+    );
 };
 
 export const generateRefreshToken = (
@@ -27,14 +33,13 @@ export const generateRefreshToken = (
     email: string,
     role: "admin" | "user",
 ): string => {
-    const payload: JwtPayload = {userId, email, role};
-    const secret = process.env.JWT_REFRESH_SECRET as string;
-
-    const options: SignOptions = {
-        expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || ("7d" as any),
-    };
-
-    return jwt.sign(payload, secret, options);
+    return jwt.sign(
+        {userId, email, role},
+        process.env.JWT_REFRESH_SECRET as string,
+        {
+            expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || ("7d" as any),
+        },
+    );
 };
 
 export const verifyAccessToken = (token: string): JwtPayload => {
@@ -57,32 +62,17 @@ export const setTokenCookies = (
     refreshToken: string,
 ): void => {
     res.cookie("accessToken", accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        path: "/",
+        ...COOKIE_BASE_OPTIONS,
         maxAge: 15 * 60 * 1000,
     });
 
     res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        path: "/",
+        ...COOKIE_BASE_OPTIONS,
         maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 };
 
 export const clearTokenCookies = (res: Response): void => {
-    res.cookie("accessToken", "", {
-        httpOnly: true,
-        expires: new Date(0),
-        path: "/",
-    });
-
-    res.cookie("refreshToken", "", {
-        httpOnly: true,
-        expires: new Date(0),
-        path: "/",
-    });
+    res.clearCookie("accessToken", COOKIE_BASE_OPTIONS);
+    res.clearCookie("refreshToken", COOKIE_BASE_OPTIONS);
 };

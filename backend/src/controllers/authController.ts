@@ -1,19 +1,12 @@
 import {UserModel, IUser} from "../models/users/User";
+import {generateAccessToken, generateRefreshToken} from "../utils/jwt";
 import {
-    generateAccessToken,
-    generateRefreshToken,
-    setTokenCookies,
-    clearTokenCookies,
-} from "../utils/jwt";
-import {AuthResponse} from "../types/Auth.types";
-import {Request, Response} from "express";
-import {
-    validateEmail,
-    validateName,
-    validatePassword,
-} from "../utils/validators";
+    AuthResponse,
+    RegisterRequestBody,
+    LoginRequestBody,
+} from "../types/Auth.types";
 import bcrypt from "bcrypt";
-import {AuthRequest} from "../middlewares/auth";
+import {MongoServerError} from "mongodb";
 
 const buildAuthResponse = (user: IUser, accessToken: string): AuthResponse => ({
     accessToken,
@@ -27,36 +20,15 @@ const buildAuthResponse = (user: IUser, accessToken: string): AuthResponse => ({
     },
 });
 
-export const registerUser = async (req: Request, res: Response) => {
+export const registerUser = async (
+    body: RegisterRequestBody,
+): Promise<{authResponse: AuthResponse; refreshToken: string}> => {
     try {
-        const {email, password, displayName} = req.body;
-
-        if (!email || !password || !displayName) {
-            res.status(400).json({message: "All fields are required"});
-            return;
-        }
-
-        if (!validateEmail(email)) {
-            res.status(400).json({message: "Invalid email format"});
-            return;
-        }
-
-        const passwordValidation = validatePassword(password);
-
-        if (!passwordValidation.valid) {
-            res.status(400).json({message: passwordValidation.message});
-            return;
-        }
-
-        const nameValidation = validateName(displayName);
-        if (!nameValidation.valid) {
-            res.status(400).json({message: nameValidation.message});
-            return;
-        }
+        const {email, password, displayName} = body;
 
         const passwordHash = await bcrypt.hash(password, 10);
 
-        const user = await UserModel.create({
+        const user = new UserModel({
             email: email.toLowerCase(),
             passwordHash,
             displayName,
@@ -75,107 +47,75 @@ export const registerUser = async (req: Request, res: Response) => {
         );
 
         user.refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+
         await user.save();
 
-        setTokenCookies(res, accessToken, refreshToken);
-
-        return res.json({
+        return {
             authResponse: buildAuthResponse(user, accessToken),
             refreshToken,
-        });
-    } catch (err: any) {
-        if (err.code === 11000) {
-            res.status(400).json({message: "User already exists"});
-            return;
+        };
+    } catch (err: unknown) {
+        if (err instanceof MongoServerError && err.code === 11000) {
+            throw new Error("USER_ALREADY_EXISTS");
         }
-
-        return res.status(500).json({message: "Internal server error"});
+        throw new Error("INTERNAL_SERVER_ERROR");
     }
 };
 
-export const loginUser = async (req: Request, res: Response) => {
-    try {
-        const {email, password} = req.body;
+export const loginUser = async (
+    body: LoginRequestBody,
+): Promise<{authResponse: AuthResponse; refreshToken: string}> => {
+    const {email, password} = body;
 
-        if (!email || !password) {
-            return res
-                .status(400)
-                .json({message: "Email and password are required"});
-        }
-
-        const user = await UserModel.findOne({email: email.toLowerCase()});
-
-        if (!user) {
-            res.status(401).json({message: "Invalid email"});
-            return;
-        }
-
-        const isPasswordValid = await user.comparePassword(password);
-
-        if (!isPasswordValid) {
-            res.status(401).json({message: "Invalid password"});
-            return;
-        }
-
-        const accessToken = generateAccessToken(
-            user._id.toString(),
-            user.email,
-            user.role,
-        );
-
-        const refreshToken = generateRefreshToken(
-            user._id.toString(),
-            user.email,
-            user.role,
-        );
-
-        user.refreshTokenHash = await bcrypt.hash(refreshToken, 10);
-        await user.save();
-
-        setTokenCookies(res, accessToken, refreshToken);
-
-        return res.json({
-            authResponse: buildAuthResponse(user, accessToken),
-            refreshToken,
-        });
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({message: "Internal server error"});
-    }
-};
-
-export const logoutUser = async (
-    req: AuthRequest,
-    res: Response,
-): Promise<void> => {
-    try {
-        if (req.userId) {
-            await UserModel.findByIdAndUpdate(req.userId, {
-                refreshTokenHash: null,
-            });
-        }
-
-        clearTokenCookies(res);
-
-        res.status(200).json({message: "Logout successful"});
-    } catch {
-        res.status(500).json({message: "Logout failed"});
-    }
-};
-
-export const getMe = async (req: AuthRequest, res: Response) => {
-    const user = await UserModel.findById(req.userId);
+    const user = await UserModel.findOne({email: email.toLowerCase()});
 
     if (!user) {
-        return res.status(404).json({message: "User not found"});
+        throw new Error("INVALID_CREDENTIALS");
     }
 
-    return res.json({
+    const isPasswordValid = await user.comparePassword(password);
+
+    if (!isPasswordValid) {
+        throw new Error("INVALID_CREDENTIALS");
+    }
+
+    const accessToken = generateAccessToken(
+        user._id.toString(),
+        user.email,
+        user.role,
+    );
+    const refreshToken = generateRefreshToken(
+        user._id.toString(),
+        user.email,
+        user.role,
+    );
+
+    user.refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+    await user.save();
+
+    return {
+        authResponse: buildAuthResponse(user, accessToken),
+        refreshToken,
+    };
+};
+
+export const logoutUser = async (userId: string): Promise<void> => {
+    await UserModel.findByIdAndUpdate(userId, {
+        refreshTokenHash: null,
+    });
+};
+
+export const getMe = async (userId: string): Promise<AuthResponse["user"]> => {
+    const user = await UserModel.findById(userId);
+
+    if (!user) throw new Error("USER_NOT_FOUND");
+
+    return {
         id: user._id.toString(),
         email: user.email,
         displayName: user.displayName,
         avatarUrl: user.avatarUrl,
         bio: user.bio,
         role: user.role,
-    });
+    };
 };
