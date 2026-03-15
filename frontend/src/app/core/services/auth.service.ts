@@ -61,6 +61,7 @@ export class AuthService {
       .pipe(
         tap((response) => {
           this.authStore.setAuth(response.user, response.accessToken);
+          this.authStore.updateAccessToken(response.accessToken);
         }),
       );
   }
