@@ -15,7 +15,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { RoomsService } from '../../core/services/rooms.service';
-import { RoomsStore } from '../../core/auth/rooms.store';
+import { RoomsStore } from './rooms.store';
 import { AuthStore } from '../../core/auth/auth.store';
 import { AuthService } from '../../core/services/auth.service';
 import { Room } from '../../core/models/room.models';
