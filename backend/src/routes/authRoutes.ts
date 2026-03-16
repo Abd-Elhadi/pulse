@@ -14,7 +14,7 @@ import {
 } from "../utils/validators";
 import {auditLog} from "../middlewares/audit";
 import {clearTokenCookies, setTokenCookies} from "../utils/jwt";
-import {AuthResponse, RefreshRequestBody} from "../types/Auth.types";
+import {AuthResponse, RefreshRequestBody} from "../types/auth.types";
 
 const router = Router();
 

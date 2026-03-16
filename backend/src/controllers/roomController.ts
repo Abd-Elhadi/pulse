@@ -5,7 +5,7 @@ import {
     UpdateRoomBody,
     RoomResponse,
     PaginatedRoomsResponse,
-} from "../types/rooms.type";
+} from "../types/rooms.types";
 import {MongoServerError} from "mongodb";
 
 const toRoomResponse = (room: IRoom, currentUserId?: string): RoomResponse => {

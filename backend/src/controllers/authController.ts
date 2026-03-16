@@ -9,7 +9,7 @@ import {
     AuthResponse,
     RegisterRequestBody,
     LoginRequestBody,
-} from "../types/Auth.types";
+} from "../types/auth.types";
 import bcrypt from "bcrypt";
 import {MongoServerError} from "mongodb";
 
