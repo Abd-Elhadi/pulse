@@ -27,7 +27,6 @@ import { MatTabsModule } from '@angular/material/tabs';
   imports: [
     RouterLink,
     FormsModule,
-    DatePipe,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -58,18 +57,8 @@ import { MatTabsModule } from '@angular/material/tabs';
             <div class="header-title">
               <mat-icon>{{ room()!.isPrivate ? 'lock' : 'public' }}</mat-icon>
               <h1>{{ room()!.name }}</h1>
-              @if (room()!.currentUserRole) {
-                <span class="role-badge" [class]="room()!.currentUserRole ?? ''">
-                  {{ room()!.currentUserRole }}
-                </span>
-              }
             </div>
             <p class="room-desc">{{ room()!.description || 'No description.' }}</p>
-            <div class="room-tags">
-              @for (tag of room()!.tags; track tag) {
-                <mat-chip>{{ tag }}</mat-chip>
-              }
-            </div>
           </div>
           @if (roomsStore.selectedRoomIsAdmin()) {
             <button mat-stroked-button [routerLink]="['/rooms', room()!._id, 'edit']">
@@ -93,28 +82,9 @@ import { MatTabsModule } from '@angular/material/tabs';
               <mat-icon>group</mat-icon>&nbsp;Members ({{ room()!.memberCount }})
             </ng-template>
             <div class="tab-content">
-              @if (roomsStore.selectedRoomIsAdmin()) {
-                <div class="invite-row">
-                  <mat-icon>person_add</mat-icon>
-                  <span
-                    >Invite members by their User ID via the API, or share the room link for public
-                    rooms.</span
-                  >
-                </div>
-                <mat-divider />
-              }
               <mat-list>
                 @for (member of room()!.members; track member.userId) {
                   <mat-list-item class="member-item">
-                    <div matListItemAvatar class="member-avatar">
-                      @if (member.avatarUrl) {
-                        <img [src]="member.avatarUrl" [alt]="member.displayName" />
-                      } @else {
-                        <div class="avatar-placeholder">
-                          {{ member.displayName.charAt(0).toUpperCase() }}
-                        </div>
-                      }
-                    </div>
                     <div matListItemTitle class="member-name">
                       {{ member.displayName }}
                       @if (member.userId === room()!.ownerId) {
@@ -124,22 +94,12 @@ import { MatTabsModule } from '@angular/material/tabs';
                         <span class="you-label">(you)</span>
                       }
                     </div>
-                    <div matListItemLine>Joined {{ member.joinedAt | date: 'MMM d, y' }}</div>
                     <div matListItemMeta class="member-actions">
                       @if (
                         roomsStore.selectedRoomIsAdmin() &&
                         member.userId !== room()!.ownerId &&
                         member.userId !== authStore.user()?.id
                       ) {
-                        <mat-select
-                          [value]="member.role"
-                          (selectionChange)="updateRole(member, $event.value)"
-                          class="role-select"
-                        >
-                          <mat-option value="admin">Admin</mat-option>
-                          <mat-option value="editor">Editor</mat-option>
-                          <mat-option value="viewer">Viewer</mat-option>
-                        </mat-select>
                         <button
                           mat-icon-button
                           color="warn"
@@ -396,15 +356,6 @@ export class RoomDetailComponent implements OnInit {
         this.snackBar.open('Room not found', 'Close', { duration: 3000 });
         void this.router.navigate(['/rooms']);
       },
-    });
-  }
-
-  updateRole(member: RoomMember, newRole: RoomRole): void {
-    const currentRoom = this.room();
-    if (!currentRoom) return;
-    this.roomsService.updateMemberRole(currentRoom._id, member.userId, newRole).subscribe({
-      next: () => this.snackBar.open(`Role updated to ${newRole}`, 'Close', { duration: 3000 }),
-      error: () => this.snackBar.open('Failed to update role', 'Close', { duration: 3000 }),
     });
   }
 

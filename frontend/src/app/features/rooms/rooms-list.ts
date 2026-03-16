@@ -45,14 +45,7 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
         <div class="logo"><mat-icon>bolt</mat-icon><span>Pulse</span></div>
         <div class="header-right">
           <span class="user-name">{{ authStore.displayName() }}</span>
-          <button mat-icon-button [routerLink]="['/profile']" matTooltip="Profile">
-            <mat-icon>account_circle</mat-icon>
-          </button>
-          @if (authStore.isAdmin()) {
-            <button mat-icon-button [routerLink]="['/admin']" matTooltip="Admin">
-              <mat-icon>admin_panel_settings</mat-icon>
-            </button>
-          }
+          <mat-icon>account_circle</mat-icon>
           <button mat-icon-button (click)="logout()" matTooltip="Logout">
             <mat-icon>logout</mat-icon>
           </button>
@@ -60,36 +53,6 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
       </div>
 
       <div class="rooms-body">
-        <aside class="sidebar">
-          <div class="sidebar-header">
-            <span>My Rooms</span>
-            <button
-              mat-icon-button
-              [routerLink]="['/rooms/new']"
-              matTooltip="Create Room"
-              color="primary"
-            >
-              <mat-icon>add</mat-icon>
-            </button>
-          </div>
-          @if (roomsStore.myRooms().length === 0) {
-            <p class="empty-sidebar">No rooms yet.</p>
-          }
-          @for (room of roomsStore.myRooms(); track room._id) {
-            <div
-              class="sidebar-room"
-              [routerLink]="['/rooms', room._id]"
-              [class.private]="room.isPrivate"
-            >
-              <mat-icon class="room-icon">{{ room.isPrivate ? 'lock' : 'group' }}</mat-icon>
-              <span class="room-name">{{ room.name }}</span>
-              <span class="room-role" [class]="room.currentUserRole ?? ''">{{
-                room.currentUserRole
-              }}</span>
-            </div>
-          }
-        </aside>
-
         <main class="main-content">
           <div class="content-toolbar">
             <button mat-raised-button color="primary" [routerLink]="['/rooms/new']">
@@ -121,23 +84,17 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
                           room.isPrivate ? 'lock' : 'public'
                         }}</mat-icon>
                         <mat-card-title>{{ room.name }}</mat-card-title>
+                        @if (room.ownerId === authStore.user()?.id) {
+                          <span class="role-badge admin">Owner</span>
+                        }
                       </div>
-                      @if (room.currentUserRole) {
-                        <span class="role-badge" [class]="room.currentUserRole">{{
-                          room.currentUserRole
-                        }}</span>
-                      }
                     </mat-card-header>
 
                     <mat-card-content>
                       <p class="room-description">
                         {{ room.description || 'No description provided.' }}
                       </p>
-                      <div class="room-tags">
-                        @for (tag of room.tags.slice(0, 3); track tag) {
-                          <mat-chip>{{ tag }}</mat-chip>
-                        }
-                      </div>
+
                       <div class="room-meta">
                         <mat-icon inline>group</mat-icon>
                         {{ room.memberCount }} member{{ room.memberCount !== 1 ? 's' : '' }}
@@ -145,9 +102,17 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
                     </mat-card-content>
 
                     <mat-card-actions>
-                      <button mat-button color="primary" [routerLink]="['/rooms', room._id]">
-                        <mat-icon>open_in_new</mat-icon> Open
-                      </button>
+                      @if (isMember(room)) {
+                        <button
+                          mat-button
+                          color="primary"
+                          [routerLink]="['/rooms', room._id]"
+                          [disabled]="actionLoading() === room._id"
+                        >
+                          <mat-icon>open_in_new</mat-icon> Open
+                        </button>
+                      }
+
                       @if (!isMember(room)) {
                         <button
                           mat-button
@@ -158,6 +123,7 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
                           <mat-icon>login</mat-icon> Join
                         </button>
                       }
+
                       @if (isMember(room) && room.ownerId !== authStore.user()?.id) {
                         <button
                           mat-button
@@ -168,50 +134,10 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
                           <mat-icon>logout</mat-icon> Leave
                         </button>
                       }
-                      @if (room.currentUserRole === 'admin') {
-                        <button
-                          mat-icon-button
-                          [routerLink]="['/rooms', room._id, 'edit']"
-                          matTooltip="Edit"
-                        >
-                          <mat-icon>edit</mat-icon>
-                        </button>
-                        <button
-                          mat-icon-button
-                          color="warn"
-                          (click)="deleteRoom(room)"
-                          matTooltip="Delete"
-                        >
-                          <mat-icon>delete</mat-icon>
-                        </button>
-                      }
                     </mat-card-actions>
                   </mat-card>
                 }
               </div>
-
-              @if (roomsStore.pagination().totalPages > 1) {
-                <div class="pagination">
-                  <button
-                    mat-icon-button
-                    (click)="changePage(roomsStore.pagination().page - 1)"
-                    [disabled]="roomsStore.pagination().page === 1"
-                  >
-                    <mat-icon>chevron_left</mat-icon>
-                  </button>
-                  <span
-                    >Page {{ roomsStore.pagination().page }} of
-                    {{ roomsStore.pagination().totalPages }}</span
-                  >
-                  <button
-                    mat-icon-button
-                    (click)="changePage(roomsStore.pagination().page + 1)"
-                    [disabled]="roomsStore.pagination().page === roomsStore.pagination().totalPages"
-                  >
-                    <mat-icon>chevron_right</mat-icon>
-                  </button>
-                </div>
-              }
             }
           }
         </main>
@@ -254,81 +180,18 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
         align-items: center;
         gap: 0.5rem;
       }
-      .user-name {
-        font-size: 0.875rem;
-        color: #666;
-      }
       .rooms-body {
         display: flex;
+        width: 100%;
         flex: 1;
         overflow: hidden;
       }
-      .sidebar {
-        width: 240px;
-        min-width: 240px;
-        background: white;
-        border-right: 1px solid #e0e0e0;
-        overflow-y: auto;
-        padding: 1rem 0;
-      }
-      .sidebar-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 1rem 0.75rem;
-        font-weight: 600;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: #888;
-      }
-      .sidebar-room {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.6rem 1rem;
-        cursor: pointer;
-        transition: background 0.15s;
-      }
-      .sidebar-room:hover {
-        background: #f0f0ff;
-      }
-      .room-icon {
-        font-size: 1rem;
-        width: 1rem;
-        height: 1rem;
-        color: #888;
-      }
-      .room-name {
-        flex: 1;
-        font-size: 0.875rem;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .room-role {
-        font-size: 0.65rem;
-        padding: 1px 6px;
-        border-radius: 10px;
-        font-weight: 600;
-      }
-      .room-role.admin {
+
+      .role-badge.admin {
         background: #e8f5e9;
         color: #2e7d32;
       }
-      .room-role.editor {
-        background: #e3f2fd;
-        color: #1565c0;
-      }
-      .room-role.viewer {
-        background: #f3e5f5;
-        color: #6a1b9a;
-      }
-      .empty-sidebar {
-        font-size: 0.8rem;
-        color: #aaa;
-        padding: 0 1rem;
-      }
+
       .main-content {
         flex: 1;
         overflow-y: auto;
@@ -339,9 +202,6 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
         align-items: center;
         gap: 1rem;
         margin-bottom: 1.5rem;
-      }
-      .search-field {
-        flex: 1;
       }
       .loading-container {
         display: flex;
@@ -398,24 +258,6 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
         height: 1rem;
         color: #888;
       }
-      .role-badge {
-        font-size: 0.7rem;
-        padding: 2px 8px;
-        border-radius: 10px;
-        font-weight: 600;
-      }
-      .role-badge.admin {
-        background: #e8f5e9;
-        color: #2e7d32;
-      }
-      .role-badge.editor {
-        background: #e3f2fd;
-        color: #1565c0;
-      }
-      .role-badge.viewer {
-        background: #f3e5f5;
-        color: #6a1b9a;
-      }
       .room-description {
         font-size: 0.875rem;
         color: #666;
@@ -426,25 +268,12 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
       }
-      .room-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.25rem;
-        margin-bottom: 0.75rem;
-      }
       .room-meta {
         display: flex;
         align-items: center;
         gap: 0.25rem;
         font-size: 0.8rem;
         color: #888;
-      }
-      .pagination {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 1rem;
-        margin-top: 2rem;
       }
     `,
   ],
@@ -464,23 +293,24 @@ export class RoomsListComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadRooms();
-    this.roomsService.getMyRooms().subscribe();
 
     this.searchControl.valueChanges
       .pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
-      .subscribe((value) => this.loadRooms(1, value ?? undefined));
+      .subscribe((value) => this.loadRooms());
   }
 
-  loadRooms(page = 1, search?: string): void {
-    this.roomsService.getRooms(page, 12, search).subscribe();
+  loadRooms(): void {
+    this.roomsService.getRooms().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
   }
 
   changePage(page: number): void {
-    this.loadRooms(page, this.searchControl.value ?? undefined);
+    this.loadRooms();
   }
 
   isMember(room: Room): boolean {
-    return room.members.some((m) => m.userId === this.authStore.user()?.id);
+    const userId = this.authStore.user()?.id;
+    if (!userId) return false;
+    return room.members.some((m) => m.userId === userId);
   }
 
   joinRoom(room: Room): void {
@@ -489,7 +319,7 @@ export class RoomsListComponent implements OnInit {
       next: () => {
         this.actionLoading.set(null);
         this.snackBar.open(`Joined "${room.name}"`, 'Close', { duration: 3000 });
-        this.roomsService.getMyRooms().subscribe();
+        this.roomsService.getRooms().subscribe();
       },
       error: () => {
         this.actionLoading.set(null);
@@ -514,7 +344,7 @@ export class RoomsListComponent implements OnInit {
         next: () => {
           this.actionLoading.set(null);
           this.snackBar.open(`Left "${room.name}"`, 'Close', { duration: 3000 });
-          this.roomsService.getMyRooms().subscribe();
+          this.roomsService.getRooms().subscribe();
         },
         error: () => {
           this.actionLoading.set(null);
@@ -538,7 +368,7 @@ export class RoomsListComponent implements OnInit {
       this.roomsService.deleteRoom(room._id).subscribe({
         next: () => {
           this.snackBar.open(`Room deleted`, 'Close', { duration: 3000 });
-          this.roomsService.getMyRooms().subscribe();
+          this.roomsService.getRooms().subscribe();
         },
         error: () => this.snackBar.open('Failed to delete room', 'Close', { duration: 3000 }),
       });

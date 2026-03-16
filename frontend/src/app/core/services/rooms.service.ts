@@ -1,93 +1,49 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { tap } from 'rxjs';
+import { Room } from '../models/room.models';
 import { RoomsStore } from '../../features/rooms/rooms.store';
-import {
-  Room,
-  PaginatedRoomsResponse,
-  CreateRoomPayload,
-  UpdateRoomPayload,
-  InviteMemberPayload,
-  RoomRole,
-} from '../models/room.models';
 import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class RoomsService {
   private readonly http = inject(HttpClient);
-  private readonly roomsStore = inject(RoomsStore);
+  private readonly store = inject(RoomsStore);
   private readonly baseUrl = `${environment.apiUrl}/rooms`;
 
-  getRooms(page = 1, limit = 12, search?: string): Observable<PaginatedRoomsResponse> {
-    this.roomsStore.setLoading(true);
-    let params = new HttpParams().set('page', page).set('limit', limit);
-    if (search) params = params;
-
-    return this.http.get<PaginatedRoomsResponse>(this.baseUrl, { params }).pipe(
+  getRooms() {
+    this.store.setLoading(true);
+    return this.http.get<{ rooms: Room[] }>(this.baseUrl).pipe(
       tap((res) => {
-        this.roomsStore.setRooms(res);
-        this.roomsStore.setLoading(false);
+        this.store.setRooms(res.rooms);
+        this.store.setLoading(false);
       }),
     );
   }
 
-  getMyRooms(): Observable<Room[]> {
-    return this.http
-      .get<Room[]>(`${this.baseUrl}/mine`)
-      .pipe(tap((rooms) => this.roomsStore.setMyRooms(rooms)));
-  }
-
-  getRoomById(id: string): Observable<Room> {
+  getRoomById(id: string) {
     return this.http
       .get<Room>(`${this.baseUrl}/${id}`)
-      .pipe(tap((room) => this.roomsStore.setSelectedRoom(room)));
+      .pipe(tap((room) => this.store.setSelectedRoom(room)));
   }
 
-  createRoom(payload: CreateRoomPayload): Observable<Room> {
-    return this.http
-      .post<Room>(this.baseUrl, payload)
-      .pipe(tap((room) => this.roomsStore.addRoom(room)));
+  createRoom(data: { name: string; description: string; isPrivate: boolean }) {
+    return this.http.post<Room>(this.baseUrl, data).pipe(tap((room) => this.store.addRoom(room)));
   }
 
-  updateRoom(id: string, payload: UpdateRoomPayload): Observable<Room> {
-    return this.http
-      .patch<Room>(`${this.baseUrl}/${id}`, payload)
-      .pipe(tap((room) => this.roomsStore.updateRoom(room)));
+  deleteRoom(id: string) {
+    return this.http.delete(`${this.baseUrl}/${id}`).pipe(tap(() => this.store.removeRoom(id)));
   }
 
-  deleteRoom(id: string): Observable<{ message: string }> {
-    return this.http
-      .delete<{ message: string }>(`${this.baseUrl}/${id}`)
-      .pipe(tap(() => this.roomsStore.removeRoom(id)));
+  joinRoom(id: string) {
+    return this.http.post(`${this.baseUrl}/${id}/join`, {});
   }
 
-  joinRoom(id: string): Observable<Room> {
-    return this.http
-      .post<Room>(`${this.baseUrl}/${id}/join`, {})
-      .pipe(tap((room) => this.roomsStore.updateRoom(room)));
+  leaveRoom(id: string) {
+    return this.http.post(`${this.baseUrl}/${id}/leave`, {});
   }
 
-  leaveRoom(id: string): Observable<{ message: string }> {
-    return this.http
-      .post<{ message: string }>(`${this.baseUrl}/${id}/leave`, {})
-      .pipe(tap(() => this.roomsStore.removeRoom(id)));
-  }
-
-  inviteMember(id: string, payload: InviteMemberPayload): Observable<Room> {
-    return this.http
-      .post<Room>(`${this.baseUrl}/${id}/members`, payload)
-      .pipe(tap((room) => this.roomsStore.updateRoom(room)));
-  }
-
-  updateMemberRole(id: string, userId: string, role: RoomRole): Observable<Room> {
-    return this.http
-      .patch<Room>(`${this.baseUrl}/${id}/members/${userId}`, { role })
-      .pipe(tap((room) => this.roomsStore.updateRoom(room)));
-  }
-
-  removeMember(id: string, userId: string): Observable<Room> {
-    return this.http
-      .delete<Room>(`${this.baseUrl}/${id}/members/${userId}`)
-      .pipe(tap((room) => this.roomsStore.updateRoom(room)));
+  removeMember(id: string, userId: string) {
+    return this.http.delete<Room>(`${this.baseUrl}/${id}/members/${userId}`);
   }
 }
