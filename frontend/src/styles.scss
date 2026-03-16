@@ -43,17 +43,66 @@ a {
   color: inherit;
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.auth-container {
+  max-width: 420px;
+  margin: 10px auto;
+  padding: 20px;
+  border-radius: 8px;
 }
-::-webkit-scrollbar-track {
-  background: var(--mat-sys-surface-container-low);
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 1.5rem;
 }
-::-webkit-scrollbar-thumb {
-  background: var(--mat-sys-outline-variant);
-  border-radius: 3px;
+
+mat-card-header {
+  flex-direction: column;
+  margin-bottom: 1rem;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: var(--mat-sys-outline);
+
+.auth-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #667eea;
+  margin-bottom: 0.5rem;
+
+  mat-icon {
+    font-size: 2rem;
+    width: 2rem;
+    height: 2rem;
+  }
+}
+
+.full-width {
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fdecea;
+  color: #c62828;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.submit-btn {
+  height: 48px;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}
+
+.auth-redirect {
+  text-align: center;
+  width: 100%;
+  color: #666;
+  font-size: 0.875rem;
 }

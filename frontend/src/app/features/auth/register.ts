@@ -151,67 +151,6 @@ const passwordMatchValidator = (control: AbstractControl): ValidationErrors | nu
       </mat-card>
     </div>
   `,
-  styles: [
-    `
-      .auth-container {
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1rem;
-      }
-      .auth-card {
-        width: 100%;
-        max-width: 420px;
-        padding: 1.5rem;
-      }
-      .auth-logo {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #667eea;
-        margin-bottom: 0.5rem;
-        mat-icon {
-          font-size: 2rem;
-          width: 2rem;
-          height: 2rem;
-        }
-      }
-      .full-width {
-        width: 100%;
-        margin-bottom: 0.5rem;
-      }
-      .error-banner {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: #fdecea;
-        color: #c62828;
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-        margin-bottom: 1rem;
-        font-size: 0.875rem;
-      }
-      .submit-btn {
-        height: 48px;
-        font-size: 1rem;
-        margin-top: 0.5rem;
-      }
-      .auth-redirect {
-        text-align: center;
-        width: 100%;
-        color: #666;
-        font-size: 0.875rem;
-      }
-      mat-card-header {
-        flex-direction: column;
-        margin-bottom: 1rem;
-      }
-    `,
-  ],
 })
 export class RegisterComponent {
   private readonly authService = inject(AuthService);
