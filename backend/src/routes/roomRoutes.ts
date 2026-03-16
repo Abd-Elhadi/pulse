@@ -19,7 +19,7 @@ import {
     InviteMemberBody,
     UpdateMemberRoleBody,
     UpdateRoomBody,
-} from "../types/rooms.type";
+} from "../types/rooms.types";
 
 const router = Router();
 

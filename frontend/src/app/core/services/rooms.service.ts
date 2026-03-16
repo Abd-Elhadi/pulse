@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
-import { RoomsStore } from '../auth/rooms.store';
+import { RoomsStore } from '../../features/rooms/rooms.store';
 import {
   Room,
   PaginatedRoomsResponse,

@@ -13,11 +13,13 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDividerModule } from '@angular/material/divider';
 import { FormsModule } from '@angular/forms';
 import { RoomsService } from '../../core/services/rooms.service';
-import { RoomsStore } from '../../core/auth/rooms.store';
+import { RoomsStore } from './rooms.store';
 import { AuthStore } from '../../core/auth/auth.store';
 import { RoomMember, RoomRole } from '../../core/models/room.models';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.component.ts';
 import { DatePipe } from '@angular/common';
+import { ChatComponent } from '../chat/chat';
+import { MatTabsModule } from '@angular/material/tabs';
 
 @Component({
   selector: 'app-room-detail',
@@ -25,6 +27,7 @@ import { DatePipe } from '@angular/common';
   imports: [
     RouterLink,
     FormsModule,
+    DatePipe,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -36,11 +39,11 @@ import { DatePipe } from '@angular/common';
     MatListModule,
     MatSelectModule,
     MatDividerModule,
-    DatePipe,
+    MatTabsModule,
+    ChatComponent,
   ],
   template: `
     <div class="detail-container">
-      <!-- Loading -->
       @if (loading()) {
         <div class="loading-center"><mat-spinner diameter="48" /></div>
       }
@@ -68,47 +71,42 @@ import { DatePipe } from '@angular/common';
               }
             </div>
           </div>
-          <div class="header-actions">
-            @if (roomsStore.selectedRoomIsAdmin()) {
-              <button mat-stroked-button [routerLink]="['/rooms', room()!._id, 'edit']">
-                <mat-icon>edit</mat-icon> Edit
-              </button>
-            }
-            <!-- Chat button placeholder - Day 3 -->
-            <button mat-raised-button color="primary" disabled>
-              <mat-icon>chat</mat-icon> Chat (Day 3)
+          @if (roomsStore.selectedRoomIsAdmin()) {
+            <button mat-stroked-button [routerLink]="['/rooms', room()!._id, 'edit']">
+              <mat-icon>edit</mat-icon> Edit
             </button>
-          </div>
+          }
         </div>
 
         <mat-divider />
 
-        <div class="detail-body">
-          <!-- Members Panel -->
-          <mat-card class="members-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>group</mat-icon>
-                Members ({{ room()!.memberCount }})
-              </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <!-- Invite (admin only) -->
+        <mat-tab-group class="detail-tabs" animationDuration="150ms">
+          <mat-tab>
+            <ng-template mat-tab-label> <mat-icon>chat</mat-icon>&nbsp;Chat </ng-template>
+            <div class="tab-chat">
+              <app-chat [roomId]="room()!._id" />
+            </div>
+          </mat-tab>
+
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <mat-icon>group</mat-icon>&nbsp;Members ({{ room()!.memberCount }})
+            </ng-template>
+            <div class="tab-content">
               @if (roomsStore.selectedRoomIsAdmin()) {
                 <div class="invite-row">
                   <mat-icon>person_add</mat-icon>
-                  <span class="invite-note">
-                    Invite by sharing the room link or use the API. Full invite UI coming soon.
-                  </span>
+                  <span
+                    >Invite members by their User ID via the API, or share the room link for public
+                    rooms.</span
+                  >
                 </div>
                 <mat-divider />
               }
-
-              <!-- Member list -->
               <mat-list>
                 @for (member of room()!.members; track member.userId) {
                   <mat-list-item class="member-item">
-                    <div class="member-avatar" matListItemAvatar>
+                    <div matListItemAvatar class="member-avatar">
                       @if (member.avatarUrl) {
                         <img [src]="member.avatarUrl" [alt]="member.displayName" />
                       } @else {
@@ -117,23 +115,17 @@ import { DatePipe } from '@angular/common';
                         </div>
                       }
                     </div>
-
                     <div matListItemTitle class="member-name">
                       {{ member.displayName }}
                       @if (member.userId === room()!.ownerId) {
-                        <mat-icon class="owner-icon" matTooltip="Room Owner">star</mat-icon>
+                        <mat-icon class="owner-icon" matTooltip="Owner">star</mat-icon>
                       }
                       @if (member.userId === authStore.user()?.id) {
                         <span class="you-label">(you)</span>
                       }
                     </div>
-
-                    <div matListItemLine class="member-meta">
-                      Joined {{ member.joinedAt | date: 'MMM d, y' }}
-                    </div>
-
+                    <div matListItemLine>Joined {{ member.joinedAt | date: 'MMM d, y' }}</div>
                     <div matListItemMeta class="member-actions">
-                      <!-- Role selector for admins (not for owner) -->
                       @if (
                         roomsStore.selectedRoomIsAdmin() &&
                         member.userId !== room()!.ownerId &&
@@ -152,7 +144,7 @@ import { DatePipe } from '@angular/common';
                           mat-icon-button
                           color="warn"
                           (click)="removeMember(member)"
-                          matTooltip="Remove member"
+                          matTooltip="Remove"
                         >
                           <mat-icon>person_remove</mat-icon>
                         </button>
@@ -164,29 +156,27 @@ import { DatePipe } from '@angular/common';
                   <mat-divider />
                 }
               </mat-list>
-            </mat-card-content>
-          </mat-card>
+            </div>
+          </mat-tab>
 
-          <!-- Resources placeholder (Day 4) -->
-          <mat-card class="resources-card">
-            <mat-card-header>
-              <mat-card-title> <mat-icon>folder</mat-icon> Resources </mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <div class="coming-soon">
-                <mat-icon>upload_file</mat-icon>
-                <p>File uploads and AI quiz generation coming soon</p>
-              </div>
-            </mat-card-content>
-          </mat-card>
-        </div>
+          <mat-tab>
+            <ng-template mat-tab-label> <mat-icon>folder</mat-icon>&nbsp;Resources </ng-template>
+            <div class="tab-content coming-soon">
+              <mat-icon>upload_file</mat-icon>
+              <h3>Resources & AI Quiz</h3>
+              <p>Upload PDFs and generate AI-powered quizzes — coming soon</p>
+            </div>
+          </mat-tab>
+        </mat-tab-group>
       }
     </div>
   `,
   styles: [
     `
       .detail-container {
-        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
         background: #f8f9fa;
       }
       .loading-center {
@@ -199,9 +189,10 @@ import { DatePipe } from '@angular/common';
         display: flex;
         align-items: flex-start;
         gap: 1rem;
-        padding: 1.5rem;
+        padding: 1rem 1.5rem;
         background: white;
         border-bottom: 1px solid #e0e0e0;
+        flex-shrink: 0;
       }
       .header-info {
         flex: 1;
@@ -210,29 +201,24 @@ import { DatePipe } from '@angular/common';
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.25rem;
       }
       .header-title h1 {
         margin: 0;
-        font-size: 1.5rem;
+        font-size: 1.35rem;
       }
       .header-title mat-icon {
         color: #888;
       }
       .room-desc {
-        margin: 0 0 0.75rem;
+        margin: 0 0 0.5rem;
         color: #666;
-        font-size: 0.9rem;
+        font-size: 0.875rem;
       }
       .room-tags {
         display: flex;
         flex-wrap: wrap;
         gap: 0.25rem;
-      }
-      .header-actions {
-        display: flex;
-        gap: 0.75rem;
-        align-items: flex-start;
       }
 
       .role-badge {
@@ -254,17 +240,31 @@ import { DatePipe } from '@angular/common';
         color: #6a1b9a;
       }
 
-      .detail-body {
-        display: grid;
-        grid-template-columns: 340px 1fr;
-        gap: 1.5rem;
-        padding: 1.5rem;
+      .detail-tabs {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
       }
 
-      .members-card mat-card-title {
+      ::ng-deep .detail-tabs .mat-mdc-tab-body-wrapper {
+        flex: 1;
+        min-height: 0;
+      }
+      ::ng-deep .detail-tabs .mat-mdc-tab-body-content {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      .tab-chat {
+        height: 100%;
         display: flex;
-        align-items: center;
-        gap: 0.5rem;
+        flex-direction: column;
+      }
+      .tab-content {
+        padding: 1.5rem;
+        overflow-y: auto;
+        height: 100%;
       }
 
       .invite-row {
@@ -278,21 +278,20 @@ import { DatePipe } from '@angular/common';
         font-size: 0.85rem;
         color: #555;
       }
-
       .member-item {
         height: auto !important;
         padding: 0.5rem 0;
       }
-      .member-avatar img {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        object-fit: cover;
-      }
+      .member-avatar img,
       .avatar-placeholder {
         width: 36px;
         height: 36px;
         border-radius: 50%;
+      }
+      .member-avatar img {
+        object-fit: cover;
+      }
+      .avatar-placeholder {
         background: linear-gradient(135deg, #667eea, #764ba2);
         color: white;
         display: flex;
@@ -316,10 +315,6 @@ import { DatePipe } from '@angular/common';
       .you-label {
         font-size: 0.75rem;
         color: #888;
-      }
-      .member-meta {
-        font-size: 0.75rem;
-        color: #999;
       }
       .member-actions {
         display: flex;
@@ -349,32 +344,28 @@ import { DatePipe } from '@angular/common';
         color: #6a1b9a;
       }
 
-      .resources-card {
-        height: fit-content;
-      }
-      .resources-card mat-card-title {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
       .coming-soon {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 0.5rem;
-        padding: 2rem;
+        justify-content: center;
+        gap: 0.75rem;
         color: #ccc;
         text-align: center;
-      }
-      .coming-soon mat-icon {
-        font-size: 3rem;
-        width: 3rem;
-        height: 3rem;
-      }
-      .coming-soon p {
-        margin: 0;
-        font-size: 0.875rem;
-        color: #aaa;
+        mat-icon {
+          font-size: 4rem;
+          width: 4rem;
+          height: 4rem;
+        }
+        h3 {
+          margin: 0;
+          color: #555;
+        }
+        p {
+          margin: 0;
+          font-size: 0.875rem;
+          color: #aaa;
+        }
       }
     `,
   ],
@@ -411,12 +402,8 @@ export class RoomDetailComponent implements OnInit {
   updateRole(member: RoomMember, newRole: RoomRole): void {
     const currentRoom = this.room();
     if (!currentRoom) return;
-
     this.roomsService.updateMemberRole(currentRoom._id, member.userId, newRole).subscribe({
-      next: () =>
-        this.snackBar.open(`${member.displayName}'s role updated to ${newRole}`, 'Close', {
-          duration: 3000,
-        }),
+      next: () => this.snackBar.open(`Role updated to ${newRole}`, 'Close', { duration: 3000 }),
       error: () => this.snackBar.open('Failed to update role', 'Close', { duration: 3000 }),
     });
   }
@@ -424,16 +411,14 @@ export class RoomDetailComponent implements OnInit {
   removeMember(member: RoomMember): void {
     const currentRoom = this.room();
     if (!currentRoom) return;
-
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: {
         title: 'Remove Member',
-        message: `Remove ${member.displayName} from this room?`,
+        message: `Remove ${member.displayName}?`,
         confirmLabel: 'Remove',
         danger: true,
       },
     });
-
     ref.afterClosed().subscribe((confirmed: boolean) => {
       if (!confirmed) return;
       this.roomsService.removeMember(currentRoom._id, member.userId).subscribe({

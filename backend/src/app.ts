@@ -5,6 +5,7 @@ import cors from "cors";
 import {env} from "./config/env";
 import authRouter from "./routes/authRoutes";
 import roomsRouter from "./routes/roomRoutes";
+import messageRouter from "./routes/messageRoutes";
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use(cors({origin: env.FRONTEND_URL, credentials: true}));
 
 app.use("/api/auth", authRouter);
 app.use("/api/rooms", roomsRouter);
+app.use("/api/rooms/:roomId/messages", messageRouter);
 
 app.use((_req, res) => {
     res.status(404).json({message: "Route not found"});
