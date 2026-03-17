@@ -1,8 +1,7 @@
-import "dotenv/config";
+import {env} from "./config/env";
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import {env} from "./config/env";
 import authRouter from "./routes/authRoutes";
 import roomsRouter from "./routes/roomRoutes";
 import messageRouter from "./routes/messageRoutes";

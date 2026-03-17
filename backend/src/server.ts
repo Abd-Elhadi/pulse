@@ -1,10 +1,7 @@
 import http from "http";
-import dotenv from "dotenv";
 import app from "./app";
 import {connectDatabase} from "./config/database";
 import {createWsServer} from "./websocket/ws.server";
-
-dotenv.config();
 
 const PORT = Number(process.env.PORT ?? 5000);
 
