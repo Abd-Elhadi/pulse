@@ -1,4 +1,4 @@
-import {UserModel, IUser} from "../models/users/User";
+import {UserModel, IUser} from "../models/User";
 import {
     compareToken,
     generateAccessToken,

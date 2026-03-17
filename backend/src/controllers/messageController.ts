@@ -1,5 +1,5 @@
-import {MessageModel} from "../models/chat/Message";
-import {RoomModel} from "../models/rooms/Room";
+import {MessageModel} from "../models/Message";
+import {RoomModel} from "../models/Room";
 import {
     PaginatedMessagesResponse,
     MessageResponse,
