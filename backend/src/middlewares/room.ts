@@ -1,6 +1,6 @@
 import {Request, Response, NextFunction} from "express";
 import mongoose from "mongoose";
-import {RoomModel, RoomRole} from "../models/rooms/Room";
+import {RoomModel, RoomRole} from "../models/Room";
 
 export const rbac =
     (roles: ("admin" | "editor" | "viewer")[]) =>
