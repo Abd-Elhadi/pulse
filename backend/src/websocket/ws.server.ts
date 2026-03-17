@@ -189,7 +189,7 @@ export const createWsServer = (httpServer: Server): WebSocketServer => {
             socket.isAlive = true;
         });
 
-        import("../models/users/User.js")
+        import("../models/User.js")
             .then(({UserModel}) => {
                 UserModel.findById(payload.userId)
                     .lean()
@@ -229,6 +229,6 @@ export const createWsServer = (httpServer: Server): WebSocketServer => {
         });
     });
 
-    console.log("🔌 WebSocket server attached");
+    console.log("WebSocket server attached");
     return wss;
 };

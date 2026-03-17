@@ -1,5 +1,5 @@
-import {RoomModel} from "../models/rooms/Room";
-import {MessageModel} from "../models/chat/Message";
+import {RoomModel} from "../models/Room";
+import {MessageModel} from "../models/Message";
 import {ClientEvent} from "./ws.types";
 import {
     AuthenticatedSocket,
