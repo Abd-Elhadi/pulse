@@ -19,12 +19,6 @@ interface ApiError {
   error: { message: string };
 }
 
-const passwordMatchValidator = (control: AbstractControl): ValidationErrors | null => {
-  const password = control.get('password')?.value as string;
-  const confirmPassword = control.get('confirmPassword')?.value as string;
-  return password === confirmPassword ? null : { passwordMismatch: true };
-};
-
 @Component({
   selector: 'app-register',
   standalone: true,
@@ -168,8 +162,14 @@ export class RegisterComponent {
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', Validators.required],
     },
-    { validators: passwordMatchValidator },
+    { validators: this.passwordMatchValidator },
   );
+
+  passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
+    const password = control.get('password')?.value as string;
+    const confirmPassword = control.get('confirmPassword')?.value as string;
+    return password === confirmPassword ? null : { passwordMismatch: true };
+  }
 
   onSubmit(): void {
     if (this.form.invalid) return;
