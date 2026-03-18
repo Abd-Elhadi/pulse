@@ -17,4 +17,8 @@ export const ROOMS_ROUTES: Routes = [
     path: ':id/edit',
     loadComponent: () => import('./room-form.component').then((m) => m.RoomFormComponent),
   },
+  {
+    path: ':id/quiz/:resourceId',
+    loadComponent: () => import('../quiz/quiz').then((m) => m.QuizComponent),
+  },
 ];

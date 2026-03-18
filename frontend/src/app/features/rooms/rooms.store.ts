@@ -11,6 +11,7 @@ export class RoomsStore {
   readonly selectedRoom = this._selectedRoom.asReadonly();
   readonly loading = this._loading.asReadonly();
   readonly selectedRoomIsAdmin = computed(() => this._selectedRoom()?.currentUserRole === 'admin');
+  readonly selectedRoomCanEdit = computed(() => !!this.selectedRoom());
 
   setRooms(rooms: Room[]): void {
     this._rooms.set(rooms);

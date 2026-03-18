@@ -17,9 +17,9 @@ import { RoomsStore } from './rooms.store';
 import { AuthStore } from '../../core/auth/auth.store';
 import { RoomMember, RoomRole } from '../../core/models/room.models';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.component.ts';
-import { DatePipe } from '@angular/common';
 import { ChatComponent } from '../chat/chat';
 import { MatTabsModule } from '@angular/material/tabs';
+import { ResourcesComponent } from '../resources/resources';
 
 @Component({
   selector: 'app-room-detail',
@@ -40,6 +40,7 @@ import { MatTabsModule } from '@angular/material/tabs';
     MatDividerModule,
     MatTabsModule,
     ChatComponent,
+    ResourcesComponent,
   ],
   template: `
     <div class="detail-container">
@@ -121,10 +122,8 @@ import { MatTabsModule } from '@angular/material/tabs';
 
           <mat-tab>
             <ng-template mat-tab-label> <mat-icon>folder</mat-icon>&nbsp;Resources </ng-template>
-            <div class="tab-content coming-soon">
-              <mat-icon>upload_file</mat-icon>
-              <h3>Resources & AI Quiz</h3>
-              <p>Upload PDFs and generate AI-powered quizzes — coming soon</p>
+            <div class="tab-resources">
+              <app-resources [roomId]="room()!._id" />
             </div>
           </mat-tab>
         </mat-tab-group>
