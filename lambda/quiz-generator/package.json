@@ -2,7 +2,7 @@
     "name": "pulse-quiz-generator-lambda",
     "version": "1.0.0",
     "description": "Lambda function: reads PDF from S3, calls Gemini, saves quiz to MongoDB",
-    "main": "dist/index.js",
+    "main": "dist/index.ts",
     "scripts": {
         "build": "tsc",
         "package": "npm run build && cd dist && zip -r ../lambda.zip . && cd .. && zip -r lambda.zip node_modules"
