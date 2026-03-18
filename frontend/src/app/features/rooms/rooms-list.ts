@@ -1,19 +1,12 @@
-import { Component, inject, signal, OnInit, DestroyRef } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { Component, inject, signal, OnInit } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { RoomsService } from '../../core/services/rooms.service';
 import { RoomsStore } from './rooms.store';
 import { AuthStore } from '../../core/auth/auth.store';
@@ -26,15 +19,10 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
   standalone: true,
   imports: [
     RouterLink,
-    ReactiveFormsModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatInputModule,
-    MatFormFieldModule,
-    MatChipsModule,
     MatProgressSpinnerModule,
-    MatTabsModule,
     MatSnackBarModule,
     MatTooltipModule,
     MatDialogModule,
@@ -42,7 +30,7 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
   template: `
     <div class="rooms-container">
       <div class="rooms-header">
-        <div class="logo"><mat-icon>bolt</mat-icon><span>Pulse</span></div>
+        <a [routerLink]="['']" class="logo"><mat-icon>bolt</mat-icon><span>Pulse</span></a>
         <div class="header-right">
           <span class="user-name">{{ authStore.displayName() }}</span>
           <mat-icon>account_circle</mat-icon>
@@ -62,83 +50,96 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
 
           @if (roomsStore.loading()) {
             <div class="loading-container"><mat-spinner diameter="48" /></div>
-          }
-
-          @if (!roomsStore.loading()) {
-            @if (roomsStore.rooms().length === 0) {
-              <div class="empty-state">
-                <mat-icon>school</mat-icon>
-                <h3>No study rooms found</h3>
-                <p>Be the first to create one!</p>
-                <button mat-raised-button color="primary" [routerLink]="['/rooms/new']">
-                  Create a Room
-                </button>
-              </div>
-            } @else {
-              <div class="rooms-grid">
-                @for (room of roomsStore.rooms(); track room._id) {
-                  <mat-card class="room-card" [class.private-card]="room.isPrivate">
-                    <mat-card-header>
-                      <div class="card-title-row">
-                        <mat-icon class="privacy-icon">{{
-                          room.isPrivate ? 'lock' : 'public'
-                        }}</mat-icon>
-                        <mat-card-title>{{ room.name }}</mat-card-title>
-                        @if (room.ownerId === authStore.user()?.id) {
-                          <span class="role-badge admin">Owner</span>
-                        }
-                      </div>
-                    </mat-card-header>
-
-                    <mat-card-content>
-                      <p class="room-description">
-                        {{ room.description || 'No description provided.' }}
-                      </p>
-
-                      <div class="room-meta">
-                        <mat-icon inline>group</mat-icon>
-                        {{ room.memberCount }} member{{ room.memberCount !== 1 ? 's' : '' }}
-                      </div>
-                    </mat-card-content>
-
-                    <mat-card-actions>
-                      @if (isMember(room)) {
-                        <button
-                          mat-button
-                          color="primary"
-                          [routerLink]="['/rooms', room._id]"
-                          [disabled]="actionLoading() === room._id"
-                        >
-                          <mat-icon>open_in_new</mat-icon> Open
-                        </button>
+          } @else if (roomsStore.rooms().length === 0) {
+            <div class="empty-state">
+              <mat-icon>school</mat-icon>
+              <h3>No study rooms found</h3>
+              <p>Be the first to create one!</p>
+              <button mat-raised-button color="primary" [routerLink]="['/rooms/new']">
+                Create a Room
+              </button>
+            </div>
+          } @else {
+            <div class="rooms-grid">
+              @for (room of roomsStore.rooms(); track room._id) {
+                <mat-card class="room-card" [class.private-card]="room.isPrivate">
+                  <mat-card-header>
+                    <div class="card-title-row">
+                      <mat-icon class="privacy-icon">{{
+                        room.isPrivate ? 'lock' : 'public'
+                      }}</mat-icon>
+                      <mat-card-title>{{ room.name }}</mat-card-title>
+                      @if (room.currentUserRole && isMember(room)) {
+                        <span class="role-badge" [class]="room.currentUserRole">{{
+                          room.currentUserRole
+                        }}</span>
                       }
+                    </div>
+                  </mat-card-header>
 
-                      @if (!isMember(room)) {
-                        <button
-                          mat-button
-                          color="accent"
-                          (click)="joinRoom(room)"
-                          [disabled]="actionLoading() === room._id"
-                        >
-                          <mat-icon>login</mat-icon> Join
-                        </button>
-                      }
+                  <mat-card-content>
+                    <p class="room-description">
+                      {{ room.description || 'No description provided.' }}
+                    </p>
+                    <div class="room-meta">
+                      <mat-icon inline>group</mat-icon>
+                      {{ room.memberCount }} member{{ room.memberCount !== 1 ? 's' : '' }}
+                    </div>
+                  </mat-card-content>
 
-                      @if (isMember(room) && room.ownerId !== authStore.user()?.id) {
-                        <button
-                          mat-button
-                          color="warn"
-                          (click)="leaveRoom(room)"
-                          [disabled]="actionLoading() === room._id"
-                        >
-                          <mat-icon>logout</mat-icon> Leave
-                        </button>
-                      }
-                    </mat-card-actions>
-                  </mat-card>
-                }
-              </div>
-            }
+                  <mat-card-actions>
+                    @if (isMember(room)) {
+                      <button
+                        mat-button
+                        color="primary"
+                        [routerLink]="['/rooms', room._id]"
+                        [disabled]="actionLoading() === room._id"
+                      >
+                        <mat-icon>open_in_new</mat-icon> Open
+                      </button>
+                    } @else {
+                      <button
+                        mat-button
+                        color="accent"
+                        (click)="joinRoom(room)"
+                        [disabled]="actionLoading() === room._id"
+                      >
+                        <mat-icon>login</mat-icon> Join
+                      </button>
+                    }
+
+                    @if (isMember(room) && room.ownerId !== authStore.user()?.id) {
+                      <button
+                        mat-button
+                        color="warn"
+                        (click)="leaveRoom(room)"
+                        [disabled]="actionLoading() === room._id"
+                      >
+                        <mat-icon>logout</mat-icon> Leave
+                      </button>
+                    }
+
+                    @if (room.currentUserRole === 'admin') {
+                      <button
+                        mat-icon-button
+                        [routerLink]="['/rooms', room._id, 'edit']"
+                        matTooltip="Edit"
+                      >
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        color="warn"
+                        (click)="deleteRoom(room)"
+                        matTooltip="Delete"
+                      >
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    }
+                  </mat-card-actions>
+                </mat-card>
+              }
+            </div>
           }
         </main>
       </div>
@@ -152,6 +153,7 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
         height: 100vh;
         background: #f8f9fa;
       }
+
       .rooms-header {
         display: flex;
         align-items: center;
@@ -180,18 +182,13 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
         align-items: center;
         gap: 0.5rem;
       }
+
       .rooms-body {
         display: flex;
         width: 100%;
         flex: 1;
         overflow: hidden;
       }
-
-      .role-badge.admin {
-        background: #e8f5e9;
-        color: #2e7d32;
-      }
-
       .main-content {
         flex: 1;
         overflow-y: auto;
@@ -203,11 +200,13 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
         gap: 1rem;
         margin-bottom: 1.5rem;
       }
+
       .loading-container {
         display: flex;
         justify-content: center;
         padding: 4rem;
       }
+
       .empty-state {
         display: flex;
         flex-direction: column;
@@ -229,6 +228,7 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
       .empty-state p {
         margin: 0;
       }
+
       .rooms-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -246,6 +246,7 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
       .private-card {
         border-left: 3px solid #9c27b0;
       }
+
       .card-title-row {
         display: flex;
         align-items: center;
@@ -258,6 +259,11 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
         height: 1rem;
         color: #888;
       }
+      .role-badge {
+        background: #e8f5e9;
+        color: #2e7d32;
+      }
+
       .room-description {
         font-size: 0.875rem;
         color: #666;
@@ -279,32 +285,17 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
   ],
 })
 export class RoomsListComponent implements OnInit {
-  readonly roomsService = inject(RoomsService);
+  private readonly roomsService = inject(RoomsService);
   readonly roomsStore = inject(RoomsStore);
   readonly authStore = inject(AuthStore);
   private readonly authService = inject(AuthService);
-  private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
-  private readonly destroyRef = inject(DestroyRef);
 
-  readonly searchControl = new FormControl('');
   readonly actionLoading = signal<string | null>(null);
 
   ngOnInit(): void {
-    this.loadRooms();
-
-    this.searchControl.valueChanges
-      .pipe(debounceTime(400), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
-      .subscribe((value) => this.loadRooms());
-  }
-
-  loadRooms(): void {
-    this.roomsService.getRooms().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
-  }
-
-  changePage(page: number): void {
-    this.loadRooms();
+    this.roomsService.getRooms().subscribe();
   }
 
   isMember(room: Room): boolean {
@@ -319,7 +310,6 @@ export class RoomsListComponent implements OnInit {
       next: () => {
         this.actionLoading.set(null);
         this.snackBar.open(`Joined "${room.name}"`, 'Close', { duration: 3000 });
-        this.roomsService.getRooms().subscribe();
       },
       error: () => {
         this.actionLoading.set(null);
@@ -329,50 +319,50 @@ export class RoomsListComponent implements OnInit {
   }
 
   leaveRoom(room: Room): void {
-    const ref = this.dialog.open(ConfirmDialogComponent, {
-      data: {
-        title: 'Leave Room',
-        message: `Leave "${room.name}"?`,
-        confirmLabel: 'Leave',
-        danger: true,
-      },
-    });
-    ref.afterClosed().subscribe((confirmed: boolean) => {
-      if (!confirmed) return;
-      this.actionLoading.set(room._id);
-      this.roomsService.leaveRoom(room._id).subscribe({
-        next: () => {
-          this.actionLoading.set(null);
-          this.snackBar.open(`Left "${room.name}"`, 'Close', { duration: 3000 });
-          this.roomsService.getRooms().subscribe();
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        data: {
+          title: 'Leave Room',
+          message: `Leave "${room.name}"?`,
+          confirmLabel: 'Leave',
+          danger: true,
         },
-        error: () => {
-          this.actionLoading.set(null);
-          this.snackBar.open('Failed to leave room', 'Close', { duration: 3000 });
-        },
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) return;
+        this.actionLoading.set(room._id);
+        this.roomsService.leaveRoom(room._id).subscribe({
+          next: () => {
+            this.actionLoading.set(null);
+            this.snackBar.open(`Left "${room.name}"`, 'Close', { duration: 3000 });
+          },
+          error: () => {
+            this.actionLoading.set(null);
+            this.snackBar.open('Failed to leave room', 'Close', { duration: 3000 });
+          },
+        });
       });
-    });
   }
 
   deleteRoom(room: Room): void {
-    const ref = this.dialog.open(ConfirmDialogComponent, {
-      data: {
-        title: 'Delete Room',
-        message: `Permanently delete "${room.name}"? This cannot be undone.`,
-        confirmLabel: 'Delete',
-        danger: true,
-      },
-    });
-    ref.afterClosed().subscribe((confirmed: boolean) => {
-      if (!confirmed) return;
-      this.roomsService.deleteRoom(room._id).subscribe({
-        next: () => {
-          this.snackBar.open(`Room deleted`, 'Close', { duration: 3000 });
-          this.roomsService.getRooms().subscribe();
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        data: {
+          title: 'Delete Room',
+          message: `Permanently delete "${room.name}"?`,
+          confirmLabel: 'Delete',
+          danger: true,
         },
-        error: () => this.snackBar.open('Failed to delete room', 'Close', { duration: 3000 }),
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (!confirmed) return;
+        this.roomsService.deleteRoom(room._id).subscribe({
+          next: () => this.snackBar.open('Room deleted', 'Close', { duration: 3000 }),
+          error: () => this.snackBar.open('Failed to delete room', 'Close', { duration: 3000 }),
+        });
       });
-    });
   }
 
   logout(): void {
