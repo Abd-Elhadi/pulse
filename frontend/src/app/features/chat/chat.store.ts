@@ -9,7 +9,6 @@ export class ChatStore {
   private readonly _connected = signal(false);
   private readonly _loadingHistory = signal(false);
   private readonly _hasMore = signal(false);
-  private readonly _currentRoomId = signal<string | null>(null);
 
   readonly messages = this._messages.asReadonly();
   readonly onlineUsers = this._onlineUsers.asReadonly();
@@ -17,7 +16,6 @@ export class ChatStore {
   readonly connected = this._connected.asReadonly();
   readonly loadingHistory = this._loadingHistory.asReadonly();
   readonly hasMore = this._hasMore.asReadonly();
-  readonly currentRoomId = this._currentRoomId.asReadonly();
 
   readonly onlineCount = computed(() => this._onlineUsers().length);
 
@@ -32,10 +30,6 @@ export class ChatStore {
 
   setConnected(connected: boolean): void {
     this._connected.set(connected);
-  }
-
-  setCurrentRoom(roomId: string | null): void {
-    this._currentRoomId.set(roomId);
   }
 
   setLoadingHistory(loading: boolean): void {
@@ -71,6 +65,5 @@ export class ChatStore {
     this._onlineUsers.set([]);
     this._typingUsers.set([]);
     this._hasMore.set(false);
-    this._currentRoomId.set(null);
   }
 }
