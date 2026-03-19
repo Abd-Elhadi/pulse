@@ -3,8 +3,7 @@ export default {
   preset: 'ts-jest',
   testEnvironment: 'node',
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
-    '^(\\.{1,2}/.*)\\.js$': '$1', 
+    "^uuid$": "<rootDir>/src/__mocks__/uuid.ts",
   },
   transform: {
     '^.+\\.tsx?$': [
