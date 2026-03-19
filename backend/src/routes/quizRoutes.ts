@@ -7,6 +7,7 @@ import {
     getQuizForResource,
 } from "../controllers/quizController";
 import {SubmitAttemptBody} from "../types/quiz";
+import {auditLog} from "../middlewares/audit";
 
 const router = Router({mergeParams: true});
 router.use(authenticate);
@@ -80,6 +81,12 @@ router.get("/resource/:resourceId", async (req: Request, res: Response) => {
 // POST /api/rooms/:id/quizzes/:quizId/attempt — submit answers
 router.post(
     "/:quizId/attempt",
+    auditLog({
+        action: "create",
+        entity: "quiz",
+        getEntityId: (req) => req.params["quizId"] as string,
+        getMetadata: () => ({action: "quiz_attempted"}),
+    }),
     async (
         req: Request<{quizId: string}, object, SubmitAttemptBody>,
         res: Response,

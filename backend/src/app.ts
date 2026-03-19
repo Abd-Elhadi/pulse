@@ -7,6 +7,7 @@ import roomsRouter from "./routes/roomRoutes";
 import messageRouter from "./routes/messageRoutes";
 import resourcesRouter from "./routes/resourceRoutes";
 import quizzesRouter from "./routes/quizRoutes";
+import auditRouter from "./routes/auditRoutes";
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use("/api/rooms", roomsRouter);
 app.use("/api/rooms/:roomId/messages", messageRouter);
 app.use("/api/rooms/:roomId/resources", resourcesRouter);
 app.use("/api/rooms/:roomId/quizzes", quizzesRouter);
+app.use("/api/audit", auditRouter);
 
 app.use((_req, res) => {
     res.status(404).json({message: "Route not found"});
