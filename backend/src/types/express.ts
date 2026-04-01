@@ -1,5 +1,5 @@
 import {JwtPayload} from "jsonwebtoken";
-import {RoomRole} from "../models/rooms/Room";
+import {RoomRole} from "../models/Room";
 
 declare global {
     namespace Express {

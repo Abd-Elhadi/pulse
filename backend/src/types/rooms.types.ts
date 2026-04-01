@@ -1,4 +1,4 @@
-import {RoomRole} from "../models/rooms/Room";
+import {RoomRole} from "../models/Room";
 
 export interface CreateRoomBody {
     name: string;

@@ -1,7 +1,6 @@
 import {
   Component,
   inject,
-  signal,
   OnInit,
   OnDestroy,
   AfterViewChecked,
@@ -23,7 +22,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ChatService } from '../../core/services/chat.service';
 import { ChatStore } from './chat.store';
 import { AuthStore } from '../../core/auth/auth.store';
-import { Message } from '../../core/models/chat.models';
 
 @Component({
   selector: 'app-chat',
@@ -91,9 +89,7 @@ import { Message } from '../../core/models/chat.models';
                       message.senderId === authStore.user()?.id ? 'You' : message.senderDisplayName
                     }}
                   </span>
-                  <span class="msg-time">
-                    {{ message.createdAt | date: 'h:mm a' }}
-                  </span>
+                  <span class="msg-time">{{ message.createdAt | date: 'h:mm a' }}</span>
                 </div>
                 <div class="msg-bubble">{{ message.content }}</div>
               </div>
@@ -103,7 +99,7 @@ import { Message } from '../../core/models/chat.models';
 
         @if (chatStore.typingLabel()) {
           <div class="typing-indicator">
-            <span class="typing-dots"> <span></span><span></span><span></span> </span>
+            <span class="typing-dots"><span></span><span></span><span></span></span>
             {{ chatStore.typingLabel() }}
           </div>
         }
@@ -118,7 +114,6 @@ import { Message } from '../../core/models/chat.models';
               (input)="onInput()"
               maxlength="2000"
               [disabled]="!chatStore.connected()"
-              #messageInput
             />
           </mat-form-field>
           <button
@@ -223,11 +218,9 @@ import { Message } from '../../core/models/chat.models';
         gap: 0.75rem;
         align-items: flex-end;
         max-width: 75%;
-
         &.own-message {
           flex-direction: row-reverse;
           align-self: flex-end;
-
           .msg-bubble {
             background: #667eea;
             color: white;
@@ -237,7 +230,6 @@ import { Message } from '../../core/models/chat.models';
             flex-direction: row-reverse;
           }
         }
-
         &:not(.own-message) {
           align-self: flex-start;
           .msg-bubble {
@@ -276,7 +268,6 @@ import { Message } from '../../core/models/chat.models';
         gap: 0.2rem;
         min-width: 0;
       }
-
       .msg-header {
         display: flex;
         gap: 0.5rem;
@@ -292,7 +283,6 @@ import { Message } from '../../core/models/chat.models';
         font-size: 0.7rem;
         color: #aaa;
       }
-
       .msg-bubble {
         padding: 0.5rem 0.875rem;
         font-size: 0.9rem;
@@ -358,7 +348,6 @@ import { Message } from '../../core/models/chat.models';
         display: flex;
         flex-direction: column;
       }
-
       .presence-header {
         display: flex;
         align-items: center;
@@ -376,13 +365,11 @@ import { Message } from '../../core/models/chat.models';
           color: #4caf50;
         }
       }
-
       .presence-list {
         padding: 0.5rem 0;
         overflow-y: auto;
         flex: 1;
       }
-
       .presence-user {
         display: flex;
         align-items: center;
@@ -429,7 +416,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   @Input({ required: true }) roomId!: string;
   @ViewChild('messagesList') private messagesList!: ElementRef<HTMLDivElement>;
 
-  readonly chatService = inject(ChatService);
+  private readonly chatService = inject(ChatService);
   readonly chatStore = inject(ChatStore);
   readonly authStore = inject(AuthStore);
   private readonly destroyRef = inject(DestroyRef);
@@ -440,9 +427,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   ngOnInit(): void {
     this.chatStore.clearRoom();
-
     this.chatService.connect();
-
     this.chatService
       .loadMessageHistory(this.roomId, 1, 50)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -468,7 +453,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   sendMessage(): void {
     const content = this.messageText.trim();
     if (!content || !this.chatStore.connected()) return;
-
     this.chatService.sendMessage(this.roomId, content);
     this.messageText = '';
     this.shouldScrollToBottom = true;
@@ -493,11 +477,5 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private scrollToBottom(): void {
     const el = this.messagesList?.nativeElement;
     if (el) el.scrollTop = el.scrollHeight;
-  }
-
-  isConsecutive(message: Message, index: number): boolean {
-    if (index === 0) return false;
-    const prev = this.chatStore.messages()[index - 1];
-    return prev.senderId === message.senderId;
   }
 }

@@ -31,10 +31,7 @@ export class ChatService implements OnDestroy {
     this.socket.onopen = () => {
       this.chatStore.setConnected(true);
       this.reconnectAttempts = 0;
-
-      if (this.currentRoomId) {
-        this.joinRoom(this.currentRoomId);
-      }
+      if (this.currentRoomId) this.joinRoom(this.currentRoomId);
     };
 
     this.socket.onmessage = (event: MessageEvent<string>) => {
@@ -48,10 +45,7 @@ export class ChatService implements OnDestroy {
 
     this.socket.onclose = (event) => {
       this.chatStore.setConnected(false);
-
-      if (event.code === 4000 || event.code === 4001) return;
-
-      this.scheduleReconnect();
+      if (event.code !== 4000 && event.code !== 4001) this.scheduleReconnect();
     };
 
     this.socket.onerror = () => {
@@ -69,27 +63,8 @@ export class ChatService implements OnDestroy {
     this.currentRoomId = null;
   }
 
-  private scheduleReconnect(): void {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) return;
-
-    this.reconnectAttempts++;
-    const delay = Math.min(1000 * 2 ** this.reconnectAttempts, 30_000);
-
-    this.reconnectTimer = setTimeout(() => {
-      this.connect();
-    }, delay);
-  }
-
-  private clearReconnectTimer(): void {
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
-  }
-
   joinRoom(roomId: string): void {
     this.currentRoomId = roomId;
-    this.chatStore.setCurrentRoom(roomId);
     this.send({ type: 'join_room', roomId });
   }
 
@@ -106,7 +81,6 @@ export class ChatService implements OnDestroy {
 
   startTyping(roomId: string): void {
     this.send({ type: 'typing_start', roomId });
-
     if (this.typingTimer) clearTimeout(this.typingTimer);
     this.typingTimer = setTimeout(() => this.stopTyping(roomId), 3000);
   }
@@ -134,40 +108,44 @@ export class ChatService implements OnDestroy {
       );
   }
 
+  ngOnDestroy(): void {
+    this.disconnect();
+  }
+
   private send(event: object): void {
     if (this.socket?.readyState === WebSocket.OPEN) {
       this.socket.send(JSON.stringify(event));
     }
   }
 
+  private scheduleReconnect(): void {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) return;
+    this.reconnectAttempts++;
+    const delay = Math.min(1000 * 2 ** this.reconnectAttempts, 30_000);
+    this.reconnectTimer = setTimeout(() => this.connect(), delay);
+  }
+
+  private clearReconnectTimer(): void {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+  }
+
   private handleServerEvent(event: WsServerEvent): void {
     switch (event.type) {
-      case 'connected':
-        break;
-
       case 'new_message':
         this.chatStore.addMessage(event.message);
         break;
-
       case 'presence_update':
         this.chatStore.setOnlineUsers(event.onlineUsers);
         break;
-
       case 'typing_update':
         this.chatStore.setTypingUsers(event.typingUsers);
         break;
-
-      case 'user_joined':
-      case 'user_left':
-        break;
-
       case 'error':
         console.error('WS server error:', event.message);
         break;
     }
-  }
-
-  ngOnDestroy(): void {
-    this.disconnect();
   }
 }

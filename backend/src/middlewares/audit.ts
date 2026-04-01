@@ -1,7 +1,7 @@
 import {Request, Response, NextFunction} from "express";
 import mongoose from "mongoose";
-import {AuditLogModel, AuditAction, AuditEntity} from "../models/audit/Audit";
-import {UserModel} from "../models/users/User";
+import {AuditLogModel, AuditAction, AuditEntity} from "../models/Audit";
+import {UserModel} from "../models/User";
 
 export interface AuditOptions {
     action: AuditAction;

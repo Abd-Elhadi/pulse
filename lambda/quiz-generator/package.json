@@ -1,0 +1,20 @@
+{
+    "name": "pulse-quiz-generator-lambda",
+    "version": "1.0.0",
+    "description": "Lambda function: reads PDF from S3, calls Gemini, saves quiz to MongoDB",
+    "main": "dist/index.ts",
+    "scripts": {
+        "build": "tsc",
+        "package": "npm run build && cd dist && zip -r ../lambda.zip . && cd .. && zip -r lambda.zip node_modules"
+    },
+    "dependencies": {
+        "@aws-sdk/client-s3": "^3.600.0",
+        "@google/generative-ai": "^0.15.0",
+        "mongoose": "^8.4.0"
+    },
+    "devDependencies": {
+        "@types/aws-lambda": "^8.10.140",
+        "@types/node": "^20.14.0",
+        "typescript": "^5.4.5"
+    }
+}

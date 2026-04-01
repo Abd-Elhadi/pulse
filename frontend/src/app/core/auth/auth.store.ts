@@ -14,7 +14,6 @@ export class AuthStore {
   readonly isAuthenticated = computed(() => this._user() !== null && this._accessToken() !== null);
   readonly isAdmin = computed(() => this._user()?.role === 'admin');
   readonly displayName = computed(() => this._user()?.displayName ?? '');
-  readonly avatarUrl = computed(() => this._user()?.avatarUrl ?? '');
 
   setAuth(user: User, accessToken: string): void {
     this._user.set(user);

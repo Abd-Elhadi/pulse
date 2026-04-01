@@ -1,5 +1,5 @@
-import {RoomModel, IRoom, IRoomMember} from "../models/rooms/Room";
-import {UserModel} from "../models/users/User";
+import {RoomModel, IRoom, IRoomMember} from "../models/Room";
+import {UserModel} from "../models/User";
 import {
     CreateRoomBody,
     UpdateRoomBody,

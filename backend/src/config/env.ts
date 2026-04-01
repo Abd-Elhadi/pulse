@@ -1,4 +1,3 @@
-import "dotenv/config";
 import {z} from "zod";
 
 const envSchema = z.object({
@@ -11,11 +10,12 @@ const envSchema = z.object({
         .string()
         .startsWith("http://localhost")
         .default("http://localhost:4200"),
-    // AWS_REGION: z.string().default("us-east-1"),
-    // AWS_ACCESS_KEY_ID: z.string(),
-    // AWS_SECRET_ACCESS_KEY: z.string(),
-    // AWS_S3_BUCKET_NAME: z.string(),
-    // AWS_LAMBDA_TEXT_EXTRACTOR_ARN: z.string(),
+    AWS_REGION: z.string().default("us-east-1"),
+    AWS_ACCESS_KEY_ID: z.string(),
+    AWS_SECRET_ACCESS_KEY: z.string(),
+    AWS_S3_BUCKET_NAME: z.string(),
+    AWS_LAMBDA_PULSE_QUIZ_GENERATOR: z.string(),
+    AWS_SQS_PULSE_AI_JOBS: z.string(),
 });
 
 export const env = envSchema.parse(process.env);

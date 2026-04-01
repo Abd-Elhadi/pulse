@@ -7,11 +7,11 @@ import {
     joinRoom,
     leaveRoom,
 } from "../roomController";
-import {RoomModel} from "../../models/rooms/Room";
-import {UserModel} from "../../models/users/User";
+import {RoomModel} from "../../models/Room";
+import {UserModel} from "../../models/User";
 
-jest.mock("../../models/rooms/Room");
-jest.mock("../../models/users/User");
+jest.mock("../../models/Room");
+jest.mock("../../models/User");
 
 describe("RoomsService", () => {
     const mockUser = {

@@ -6,7 +6,7 @@ import {
     generateAccessToken,
     JwtPayload,
 } from "../utils/jwt";
-import {UserModel} from "../models/users/User";
+import {UserModel} from "../models/User";
 
 export const authenticate = async (
     req: Request,

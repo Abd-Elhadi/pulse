@@ -15,6 +15,8 @@ import {
 import {auditLog} from "../middlewares/audit";
 import {clearTokenCookies, setTokenCookies} from "../utils/jwt";
 import {AuthResponse, RefreshRequestBody} from "../types/auth.types";
+import {AuditLogModel} from "../models/Audit";
+import mongoose from "mongoose";
 
 const router = Router();
 
@@ -83,31 +85,51 @@ router.post(
         }
     },
 );
-router.post("/login", async (req: Request, res: Response) => {
-    const {email, password} = req.body;
+router.post(
+    "/login",
+    auditLog({
+        action: "create",
+        entity: "user",
+        getMetadata: () => ({action: "login"}),
+    }),
+    async (req: Request, res: Response) => {
+        const {email, password} = req.body;
 
-    if (!email || !password) {
-        res.status(400).json({message: "email and password are required"});
-        return;
-    }
-
-    try {
-        const {authResponse, refreshToken} = await loginUser({
-            email,
-            password,
-        });
-        setTokenCookies(res, authResponse.accessToken, refreshToken);
-        res.status(200).json(authResponse);
-    } catch (err) {
-        const error = err as Error;
-        if (error.message === "INVALID_CREDENTIALS") {
-            res.status(401).json({message: "Invalid email or password"});
+        if (!email || !password) {
+            res.status(400).json({message: "email and password are required"});
             return;
         }
-        console.error("Login error:", error);
-        res.status(500).json({message: "Internal server error"});
-    }
-});
+
+        try {
+            const {authResponse, refreshToken} = await loginUser({
+                email,
+                password,
+            });
+            setTokenCookies(res, authResponse.accessToken, refreshToken);
+            res.status(200).json(authResponse);
+            AuditLogModel.create({
+                performedBy: {
+                    userId: new mongoose.Types.ObjectId(authResponse.user.id),
+                    displayName: authResponse.user.displayName,
+                    email: authResponse.user.email,
+                },
+                action: "create",
+                entity: "user",
+                entityId: authResponse.user.id,
+                metadata: {action: "login"},
+                timestamp: new Date(),
+            }).catch((err: unknown) => console.error("Audit log error:", err));
+        } catch (err) {
+            const error = err as Error;
+            if (error.message === "INVALID_CREDENTIALS") {
+                res.status(401).json({message: "Invalid email or password"});
+                return;
+            }
+            console.error("Login error:", error);
+            res.status(500).json({message: "Internal server error"});
+        }
+    },
+);
 
 router.post(
     "/refresh",
@@ -143,20 +165,29 @@ router.post(
     },
 );
 
-router.post("/logout", authenticate, async (req: Request, res: Response) => {
-    try {
-        if (!req.user) {
-            res.status(401).json({message: "Authentication required"});
-            return;
+router.post(
+    "/logout",
+    authenticate,
+    auditLog({
+        action: "delete",
+        entity: "user",
+        getMetadata: () => ({action: "logout"}),
+    }),
+    async (req: Request, res: Response) => {
+        try {
+            if (!req.user) {
+                res.status(401).json({message: "Authentication required"});
+                return;
+            }
+            await logoutUser(req.user.userId);
+            clearTokenCookies(res);
+            res.status(200).json({message: "Logged out successfully"});
+        } catch (err) {
+            console.error("Logout error:", err);
+            res.status(500).json({message: "Internal server error"});
         }
-        await logoutUser(req.user.userId);
-        clearTokenCookies(res);
-        res.status(200).json({message: "Logged out successfully"});
-    } catch (err) {
-        console.error("Logout error:", err);
-        res.status(500).json({message: "Internal server error"});
-    }
-});
+    },
+);
 router.get("/me", authenticate, async (req: Request, res: Response) => {
     try {
         if (!req.user) {
